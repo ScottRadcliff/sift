@@ -13,6 +13,16 @@ Expected output (exit status 0):
 4:samples/payments.txt PAYMENT FAILED for order 1003.
 ```
 
+For exact case matching, place `--case-sensitive` before or after the arguments:
+
+```sh
+./bin/sift 'Payment' samples/payments.txt --case-sensitive
+```
+
+This returns only lines 1 and 2. Without the flag, the same search returns lines 1, 2, 4, and 5.
+
+Use `--` to end option parsing when the search text or filename begins with a hyphen, for example `./bin/sift -- '--help' samples/payments.txt`.
+
 Other checks:
 
 - `./bin/sift 'payment.failed' samples/payments.txt`: only line 5; punctuation is literal.

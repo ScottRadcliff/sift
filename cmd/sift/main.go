@@ -9,22 +9,47 @@ import (
 	"strings"
 )
 
-const usage = "Usage: sift 'search' filename\n\nSearch a single text file for a case-insensitive literal string.\nExit status: 0 matches, 1 no matches, 2 error."
+const usage = "Usage: sift [--case-sensitive] 'search' filename\n\nSearch a single text file for a case-insensitive literal string.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error."
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
-	if len(args) == 0 || (len(args) == 1 && (args[0] == "--help" || args[0] == "-h")) {
+	caseSensitive := false
+	help := len(args) == 0
+	var positional []string
+	options := true
+	for _, arg := range args {
+		if options {
+			switch arg {
+			case "--":
+				options = false
+				continue
+			case "--case-sensitive":
+				caseSensitive = true
+				continue
+			case "--help", "-h":
+				help = true
+				continue
+			}
+			if strings.HasPrefix(arg, "-") {
+				fmt.Fprintf(stderr, "sift: unknown option %q; use -- before literal arguments starting with -\n", arg)
+				return 2
+			}
+		}
+		positional = append(positional, arg)
+	}
+	if help {
 		fmt.Fprintln(stdout, usage)
 		return 0
 	}
-	if len(args) != 2 || args[0] == "" {
+	if len(positional) != 2 || positional[0] == "" {
 		fmt.Fprintln(stderr, "sift: provide a non-empty search string and one filename")
 		fmt.Fprintln(stderr, usage)
 		return 2
 	}
+	args = positional
 
 	file, err := os.Open(args[1])
 	if err != nil {
@@ -43,7 +68,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	matched, err := search(file, stdout, args[0], args[1])
+	matched, err := search(file, stdout, args[0], args[1], caseSensitive)
 	if err != nil {
 		fmt.Fprintf(stderr, "sift: %s: %v\n", args[1], err)
 		return 2
@@ -54,9 +79,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func search(input io.Reader, output io.Writer, term, filename string) (bool, error) {
+func search(input io.Reader, output io.Writer, term, filename string, caseSensitive bool) (bool, error) {
 	// QuoteMeta keeps punctuation literal while Go's case folding handles Unicode.
-	pattern := regexp.MustCompile("(?i)" + regexp.QuoteMeta(term))
+	expression := regexp.QuoteMeta(term)
+	if !caseSensitive {
+		expression = "(?i)" + expression
+	}
+	pattern := regexp.MustCompile(expression)
 	reader := bufio.NewReader(input)
 	matched := false
 	for lineNumber := 1; ; lineNumber++ {
