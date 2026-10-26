@@ -1,5 +1,7 @@
 # Sift
 
+![Sift — a metal sifter filtering code fragments into matching results](assets/sift-banner.png)
+
 Sift is a small Go CLI for searching text files, with readable results and a planned companion skill for agents.
 
 The project is in early development. It currently supports literal searches in a single file or recursively through a directory.
