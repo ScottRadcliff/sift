@@ -16,7 +16,7 @@ help:
 	@echo "binary  Build bin/sift for this host (HOST_OS/HOST_ARCH override)"
 	@echo "fmt     Format Go source"
 	@echo "vet     Check Go source"
-	@echo "test    Run tests (no behavioral tests exist yet)"
+	@echo "test    Run tests"
 	@echo "up      Start optional workspace container in foreground"
 	@echo "shell   Open shell in running workspace container"
 	@echo "down / stop / restart / logs / ps   Manage workspace container"

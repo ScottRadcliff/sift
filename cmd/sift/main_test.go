@@ -1,0 +1,92 @@
+package main
+
+import (
+	"bytes"
+	"errors"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestSearch(t *testing.T) {
+	for _, tt := range []struct {
+		name, text, term, want string
+	}{
+		{"mixed case", "Ready\nPayment failed\npayment FAILED twice: payment failed\n", "payment failed", "2:sample.txt Payment failed\n3:sample.txt payment FAILED twice: payment failed\n"},
+		{"literal punctuation", "a.b\naxb\n", "a.b", "1:sample.txt a.b\n"},
+		{"unicode", "CAFÉ\n", "café", "1:sample.txt CAFÉ\n"},
+		{"line endings", "skip\r\nMatch\r\nMATCH", "match", "2:sample.txt Match\n3:sample.txt MATCH\n"},
+		{"long line", strings.Repeat("x", 70000) + "needle", "needle", "1:sample.txt " + strings.Repeat("x", 70000) + "needle\n"},
+		{"no matches", "ready\n", "missing", ""},
+		{"empty file", "", "missing", ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var output bytes.Buffer
+			matched, err := search(strings.NewReader(tt.text), &output, tt.term, "sample.txt")
+			if err != nil || matched != (tt.want != "") || output.String() != tt.want {
+				t.Fatalf("matched=%v err=%v; output matches expectation: %v", matched, err, output.String() == tt.want)
+			}
+		})
+	}
+}
+
+func TestRun(t *testing.T) {
+	dir := t.TempDir()
+	filename := filepath.Join(dir, "sample file.txt")
+	if err := os.WriteFile(filename, []byte("Payment failed\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		name   string
+		args   []string
+		status int
+		want   string
+	}{
+		{"match", []string{"payment", filename}, 0, "1:" + filename + " Payment failed\n"},
+		{"no match", []string{"missing", filename}, 1, ""},
+		{"missing file", []string{"payment", filepath.Join(dir, "missing")}, 2, ""},
+		{"directory", []string{"payment", dir}, 2, ""},
+		{"missing argument", []string{"payment"}, 2, ""},
+		{"extra argument", []string{"payment", filename, filename}, 2, ""},
+		{"empty term", []string{"", filename}, 2, ""},
+		{"help", []string{"--help"}, 0, usage + "\n"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			status := run(tt.args, &stdout, &stderr)
+			if status != tt.status || stdout.String() != tt.want || (stderr.Len() > 0) != (tt.status == 2) {
+				t.Fatalf("status=%d stdout=%q stderr=%q", status, stdout.String(), stderr.String())
+			}
+		})
+	}
+}
+
+type failingIO struct{}
+
+func TestUnreadableFile(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root can read files without read permissions")
+	}
+	filename := filepath.Join(t.TempDir(), "private.txt")
+	if err := os.WriteFile(filename, []byte("payment"), 0000); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	if status := run([]string{"payment", filename}, &stdout, &stderr); status != 2 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "permission denied") {
+		t.Fatalf("status=%d stdout=%q stderr=%q", status, stdout.String(), stderr.String())
+	}
+}
+
+func (failingIO) Read([]byte) (int, error)  { return 0, io.ErrUnexpectedEOF }
+func (failingIO) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
+
+func TestSearchIOErrors(t *testing.T) {
+	if _, err := search(failingIO{}, io.Discard, "term", "sample"); !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Fatalf("read error: %v", err)
+	}
+	if _, err := search(strings.NewReader("term"), failingIO{}, "term", "sample"); !errors.Is(err, io.ErrClosedPipe) {
+		t.Fatalf("write error: %v", err)
+	}
+}

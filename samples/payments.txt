@@ -1,0 +1,6 @@
+Payment received for order 1001.
+Payment failed for order 1002.
+Retry scheduled for order 1002.
+PAYMENT FAILED for order 1003.
+Literal identifier: payment.failed
+Customer note: café receipt requested.

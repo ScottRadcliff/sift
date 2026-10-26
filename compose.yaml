@@ -6,6 +6,8 @@ services:
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     environment:
       HOME: /tmp
+      GOCACHE: /go/build-cache/user-${LOCAL_UID:-1000}
+      GOMODCACHE: /go/pkg/mod/user-${LOCAL_UID:-1000}
     working_dir: /workspace
     volumes:
       - .:/workspace
