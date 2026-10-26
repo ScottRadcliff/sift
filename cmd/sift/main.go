@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -12,7 +13,7 @@ import (
 	"strings"
 )
 
-const usage = "Usage: sift [--case-sensitive] 'search' path\n\nSearch a text file or directory recursively for a case-insensitive literal string.\nDirectory searches skip hidden entries, symlinks, and other non-regular files.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error."
+const usage = "Usage: sift [--case-sensitive] 'search' path\n\nSearch a text file or directory recursively for a case-insensitive literal string.\nBinary files (a null byte in the first 8 KB) are skipped and reported on stderr.\nDirectory searches skip hidden entries, symlinks, and other non-regular files.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error."
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
@@ -54,7 +55,7 @@ func searchPath(path string, stdout, stderr io.Writer, term string, caseSensitiv
 	if info.IsDir() {
 		return searchDirectory(path, stdout, stderr, term, caseSensitive)
 	}
-	return searchFile(path, stdout, term, caseSensitive)
+	return searchFile(path, stdout, stderr, term, caseSensitive)
 }
 
 func searchDirectory(path string, stdout, stderr io.Writer, term string, caseSensitive bool) (bool, error) {
@@ -70,7 +71,7 @@ func searchDirectory(path string, stdout, stderr io.Writer, term string, caseSen
 		}
 		if walkErr == nil && entry.Type().IsRegular() {
 			var found bool
-			found, walkErr = searchFile(filename, stdout, term, caseSensitive)
+			found, walkErr = searchFile(filename, stdout, stderr, term, caseSensitive)
 			matched = matched || found
 		}
 		if errors.Is(walkErr, errOutput) {
@@ -91,7 +92,7 @@ func searchDirectory(path string, stdout, stderr io.Writer, term string, caseSen
 	return matched, nil
 }
 
-func searchFile(filename string, output io.Writer, term string, caseSensitive bool) (bool, error) {
+func searchFile(filename string, output, diagnostics io.Writer, term string, caseSensitive bool) (bool, error) {
 	info, err := os.Stat(filename)
 	if err != nil {
 		return false, err
@@ -104,7 +105,16 @@ func searchFile(filename string, output io.Writer, term string, caseSensitive bo
 		return false, err
 	}
 	defer file.Close()
-	matched, err := search(file, output, term, filename, caseSensitive)
+	reader := bufio.NewReaderSize(file, 8192)
+	prefix, err := reader.Peek(8192)
+	if err != nil && err != io.EOF {
+		return false, fmt.Errorf("%s: %w", filename, err)
+	}
+	if bytes.IndexByte(prefix, 0) >= 0 {
+		reportSkippedBinary(diagnostics, filename)
+		return false, nil
+	}
+	matched, err := search(reader, output, term, filename, caseSensitive)
 	if err != nil {
 		return matched, fmt.Errorf("%s: %w", filename, err)
 	}

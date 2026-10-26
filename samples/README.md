@@ -48,4 +48,18 @@ Expected output (exit status 0, files visited in lexical order):
 Add `--case-sensitive` to return only the lowercase match in the nested file.
 Hidden files and directories, symlinks, and other non-regular entries are skipped during traversal. An explicitly named hidden file or directory can still be searched. Unreadable files or directories are reported on stderr, remaining files are searched, and the final exit status is 2 even if matches were found.
 
-Ignore-file support, binary detection, and search time limits are not implemented yet. Use this small sample tree for directory QA.
+Ignore-file support and search time limits are not implemented yet. Use this small sample tree for directory QA.
+
+## Binary files
+
+Files with a null byte in the first 8 KB are skipped. The directory search above still produces the same two matches, plus this stderr message:
+
+```text
+sift: skipped binary file: samples/tree/binary.dat
+```
+
+`./bin/sift 'payment failed' samples/tree/binary.dat` produces only that diagnostic and exits with status 1 (no matches). A binary skip is not an error, so a directory search with text matches still exits with status 0.
+
+This is a prefix heuristic: files without null bytes in their first 8 KB are treated as text, even if binary bytes occur later. UTF-16 files commonly contain null bytes and will be skipped; encoding conversion is not supported yet.
+
+Skipped-file messages appear yellow when stderr is a terminal. Redirected diagnostics remain plain text. Set `NO_COLOR=1` to disable color.
