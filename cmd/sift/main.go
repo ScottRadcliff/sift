@@ -2,81 +2,113 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
 
-const usage = "Usage: sift [--case-sensitive] 'search' filename\n\nSearch a single text file for a case-insensitive literal string.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error."
+const usage = "Usage: sift [--case-sensitive] 'search' path\n\nSearch a text file or directory recursively for a case-insensitive literal string.\nDirectory searches skip hidden entries, symlinks, and other non-regular files.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error."
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
-	caseSensitive := false
-	help := len(args) == 0
-	var positional []string
-	options := true
-	for _, arg := range args {
-		if options {
-			switch arg {
-			case "--":
-				options = false
-				continue
-			case "--case-sensitive":
-				caseSensitive = true
-				continue
-			case "--help", "-h":
-				help = true
-				continue
-			}
-			if strings.HasPrefix(arg, "-") {
-				fmt.Fprintf(stderr, "sift: unknown option %q; use -- before literal arguments starting with -\n", arg)
-				return 2
-			}
+	opts, err := parseArgs(args)
+	if err != nil {
+		fmt.Fprintf(stderr, "sift: %v\n", err)
+		if errors.Is(err, errArguments) {
+			fmt.Fprintln(stderr, usage)
 		}
-		positional = append(positional, arg)
+		return 2
 	}
-	if help {
+	if opts.help {
 		fmt.Fprintln(stdout, usage)
 		return 0
 	}
-	if len(positional) != 2 || positional[0] == "" {
-		fmt.Fprintln(stderr, "sift: provide a non-empty search string and one filename")
-		fmt.Fprintln(stderr, usage)
-		return 2
-	}
-	args = positional
 
-	file, err := os.Open(args[1])
+	matched, err := searchPath(opts.path, stdout, stderr, opts.term, opts.caseSensitive)
 	if err != nil {
 		fmt.Fprintf(stderr, "sift: %v\n", err)
-		return 2
-	}
-	defer file.Close()
-
-	info, err := file.Stat()
-	if err != nil {
-		fmt.Fprintf(stderr, "sift: %v\n", err)
-		return 2
-	}
-	if !info.Mode().IsRegular() {
-		fmt.Fprintf(stderr, "sift: %s: expected a regular file\n", args[1])
-		return 2
-	}
-
-	matched, err := search(file, stdout, args[0], args[1], caseSensitive)
-	if err != nil {
-		fmt.Fprintf(stderr, "sift: %s: %v\n", args[1], err)
 		return 2
 	}
 	if !matched {
 		return 1
 	}
 	return 0
+}
+
+// A failed output stream stops traversal rather than reporting an error for each file.
+var errOutput = errors.New("cannot write results")
+
+func searchPath(path string, stdout, stderr io.Writer, term string, caseSensitive bool) (bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	if info.IsDir() {
+		return searchDirectory(path, stdout, stderr, term, caseSensitive)
+	}
+	return searchFile(path, stdout, term, caseSensitive)
+}
+
+func searchDirectory(path string, stdout, stderr io.Writer, term string, caseSensitive bool) (bool, error) {
+	matched := false
+	hadFileErrors := false
+	err := filepath.WalkDir(path, func(filename string, entry fs.DirEntry, walkErr error) error {
+		// The explicitly requested root is searched even if its name starts with a dot.
+		if entry != nil && filename != path && strings.HasPrefix(entry.Name(), ".") {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if walkErr == nil && entry.Type().IsRegular() {
+			var found bool
+			found, walkErr = searchFile(filename, stdout, term, caseSensitive)
+			matched = matched || found
+		}
+		if errors.Is(walkErr, errOutput) {
+			return walkErr
+		}
+		if walkErr != nil {
+			fmt.Fprintf(stderr, "sift: %v\n", walkErr)
+			hadFileErrors = true
+		}
+		return nil
+	})
+	if err != nil {
+		return matched, err
+	}
+	if hadFileErrors {
+		return matched, errors.New("directory search completed with errors")
+	}
+	return matched, nil
+}
+
+func searchFile(filename string, output io.Writer, term string, caseSensitive bool) (bool, error) {
+	info, err := os.Stat(filename)
+	if err != nil {
+		return false, err
+	}
+	if !info.Mode().IsRegular() {
+		return false, fmt.Errorf("%s: expected a regular file", filename)
+	}
+	file, err := os.Open(filename)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+	matched, err := search(file, output, term, filename, caseSensitive)
+	if err != nil {
+		return matched, fmt.Errorf("%s: %w", filename, err)
+	}
+	return matched, nil
 }
 
 func search(input io.Reader, output io.Writer, term, filename string, caseSensitive bool) (bool, error) {
@@ -97,7 +129,7 @@ func search(input io.Reader, output io.Writer, term, filename string, caseSensit
 			line = strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
 			if pattern.MatchString(line) {
 				if _, writeErr := fmt.Fprintf(output, "%d:%s %s\n", lineNumber, filename, line); writeErr != nil {
-					return matched, writeErr
+					return matched, fmt.Errorf("%w: %w", errOutput, writeErr)
 				}
 				matched = true
 			}

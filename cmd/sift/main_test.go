@@ -54,7 +54,7 @@ func TestRun(t *testing.T) {
 		{"literal option after separator", []string{"--", "--case-sensitive", filename}, 1, ""},
 		{"no match", []string{"missing", filename}, 1, ""},
 		{"missing file", []string{"payment", filepath.Join(dir, "missing")}, 2, ""},
-		{"directory", []string{"payment", dir}, 2, ""},
+		{"directory", []string{"payment", dir}, 0, "1:" + filename + " Payment failed\n"},
 		{"missing argument", []string{"payment"}, 2, ""},
 		{"extra argument", []string{"payment", filename, filename}, 2, ""},
 		{"empty term", []string{"", filename}, 2, ""},

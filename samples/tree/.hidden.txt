@@ -1,0 +1,1 @@
+payment failed in hidden file; should be skipped.

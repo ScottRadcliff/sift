@@ -29,6 +29,23 @@ Other checks:
 - `./bin/sift 'CAFÉ' samples/payments.txt`: only line 6; Unicode case matching.
 - `./bin/sift 'refunded' samples/payments.txt`: no output, exit status 1.
 - `./bin/sift 'payment' samples/missing.txt`: error on stderr, exit status 2.
-- `./bin/sift 'payment' samples/`: directory error, exit status 2; recursion comes later.
 
 Container equivalent: `make run ARGS="'payment failed' samples/payments.txt"`.
+
+## Directory search
+
+```sh
+./bin/sift 'payment failed' samples/tree/
+```
+
+Expected output (exit status 0, files visited in lexical order):
+
+```text
+2:samples/tree/nested/retry notes.txt payment failed for order 2002.
+2:samples/tree/orders.txt Payment failed for order 2001.
+```
+
+Add `--case-sensitive` to return only the lowercase match in the nested file.
+Hidden files and directories, symlinks, and other non-regular entries are skipped during traversal. An explicitly named hidden file or directory can still be searched. Unreadable files or directories are reported on stderr, remaining files are searched, and the final exit status is 2 even if matches were found.
+
+Ignore-file support, binary detection, and search time limits are not implemented yet. Use this small sample tree for directory QA.
