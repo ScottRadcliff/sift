@@ -1,0 +1,17 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    environment:
+      HOME: /tmp
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - go-modules:/go/pkg/mod
+      - go-build:/go/build-cache
+
+volumes:
+  go-modules:
+  go-build:

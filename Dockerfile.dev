@@ -1,0 +1,9 @@
+FROM golang:1.26.9-bookworm
+
+ENV GOTOOLCHAIN=local \
+    GOMODCACHE=/go/pkg/mod \
+    GOCACHE=/go/build-cache
+
+RUN mkdir -p /go/pkg/mod /go/build-cache && chmod -R 1777 /go
+WORKDIR /workspace
+CMD ["sleep", "infinity"]

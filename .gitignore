@@ -1,0 +1,46 @@
+# Compiled binaries and local build output
+/bin/
+/dist/
+*.exe
+*.exe~
+*.test
+*.prof
+
+# Test coverage
+/coverage/
+/coverage.out
+/coverage.html
+
+# Local environment and credentials (keep sanitized examples public)
+.env
+.env.*
+!.env.example
+!.env.*.example
+/.aws/
+/.ssh/
+*.pem
+*.key
+
+# Local Go workspace configuration; commit go.mod and go.sum
+/go.work
+/go.work.sum
+
+# Developer-specific Docker overrides
+/compose.override.yaml
+/compose.override.yml
+
+# Editor and operating-system files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Local scratch files; keep sample files and expected QA output trackable
+/tmp/
+/scratch/
+*.log
