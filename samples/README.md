@@ -101,3 +101,31 @@ NO_COLOR=1 ./bin/sift 'payment' samples/payments.txt
 ```
 
 The first command highlights each match; the second disables color. The redirected file contains plain text without color escapes. `TERM=dumb` also disables color.
+
+## Regex searches
+
+```sh
+./bin/sift '/payment|retry/' samples/payments.txt
+```
+
+Expected output (exit status 0):
+
+```text
+1:samples/payments.txt Payment received for order 1001.
+2:samples/payments.txt Payment failed for order 1002.
+3:samples/payments.txt Retry scheduled for order 1002.
+4:samples/payments.txt PAYMENT FAILED for order 1003.
+5:samples/payments.txt Literal identifier: payment.failed
+```
+
+Matching portions are yellow in terminals. Additional checks:
+
+- `./bin/sift '/^payment failed/i' samples/payments.txt`: lines 2 and 4.
+- `./bin/sift '/Payment/' samples/payments.txt --case-sensitive`: lines 1 and 2.
+- `./bin/sift '/payment\.failed/' samples/payments.txt`: only line 5.
+- `./bin/sift 'payment|retry' samples/payments.txt`: literal search, no matches, status 1.
+- `./bin/sift '/[/' samples/payments.txt`: invalid regex diagnostic, status 2.
+- `./bin/sift '/payment/g' samples/payments.txt`: unsupported modifier diagnostic, status 2.
+- `./bin/sift '/payment/i' samples/payments.txt --case-sensitive`: conflicting case options, status 2.
+
+Expressions are matched per line using Go regex syntax; only trailing `i` is supported. `/pattern/` follows the default case-insensitive behavior unless `--case-sensitive` is used. Empty `//` patterns are rejected. A leading slash reserves regex syntax; use a regex with escaped slashes when searching literal paths.

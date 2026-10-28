@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -24,7 +25,7 @@ func TestSearch(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			var output bytes.Buffer
-			matched, err := search(strings.NewReader(tt.text), &output, tt.term, "sample.txt", false)
+			matched, err := search(strings.NewReader(tt.text), &output, testPattern(t, tt.term, false), "sample.txt")
 			if err != nil || matched != (tt.want != "") || output.String() != tt.want {
 				t.Fatalf("matched=%v err=%v; output matches expectation: %v", matched, err, output.String() == tt.want)
 			}
@@ -90,18 +91,27 @@ func (failingIO) Read([]byte) (int, error)  { return 0, io.ErrUnexpectedEOF }
 func (failingIO) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
 
 func TestSearchIOErrors(t *testing.T) {
-	if _, err := search(failingIO{}, io.Discard, "term", "sample", false); !errors.Is(err, io.ErrUnexpectedEOF) {
+	if _, err := search(failingIO{}, io.Discard, testPattern(t, "term", false), "sample"); !errors.Is(err, io.ErrUnexpectedEOF) {
 		t.Fatalf("read error: %v", err)
 	}
-	if _, err := search(strings.NewReader("term"), failingIO{}, "term", "sample", false); !errors.Is(err, io.ErrClosedPipe) {
+	if _, err := search(strings.NewReader("term"), failingIO{}, testPattern(t, "term", false), "sample"); !errors.Is(err, io.ErrClosedPipe) {
 		t.Fatalf("write error: %v", err)
 	}
 }
 
 func TestCaseSensitiveSearch(t *testing.T) {
 	var output bytes.Buffer
-	matched, err := search(strings.NewReader("CAFÉ\ncafé\ncafÉ\n"), &output, "café", "sample", true)
+	matched, err := search(strings.NewReader("CAFÉ\ncafé\ncafÉ\n"), &output, testPattern(t, "café", true), "sample")
 	if err != nil || !matched || output.String() != "2:sample café\n" {
 		t.Fatalf("matched=%v err=%v output=%q", matched, err, output.String())
 	}
+}
+
+func testPattern(t *testing.T, term string, caseSensitive bool) *regexp.Regexp {
+	t.Helper()
+	pattern, err := compileSearch(term, caseSensitive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pattern
 }

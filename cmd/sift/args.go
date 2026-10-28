@@ -3,11 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
 type options struct {
-	term          string
+	pattern       *regexp.Regexp
 	path          string
 	caseSensitive bool
 	noIgnore      bool
@@ -48,6 +49,11 @@ func parseArgs(args []string) (options, error) {
 	if len(positional) != 2 || positional[0] == "" {
 		return options{}, errArguments
 	}
-	opts.term, opts.path = positional[0], positional[1]
+	opts.path = positional[1]
+	pattern, err := compileSearch(positional[0], opts.caseSensitive)
+	if err != nil {
+		return options{}, err
+	}
+	opts.pattern = pattern
 	return opts, nil
 }

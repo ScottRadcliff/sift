@@ -24,6 +24,9 @@ func supportsColor(output io.Writer) bool {
 
 func highlightMatches(line string, pattern *regexp.Regexp) string {
 	return pattern.ReplaceAllStringFunc(line, func(match string) string {
+		if match == "" {
+			return ""
+		}
 		return "\x1b[33m" + match + "\x1b[0m"
 	})
 }

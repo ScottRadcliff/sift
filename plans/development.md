@@ -9,7 +9,7 @@ make binary
 ./bin/sift --help
 ```
 
-Sift currently searches a regular text file or recursively searches a directory for a case-insensitive literal string, with optional `--case-sensitive` matching. See [sample searches](../samples/README.md) for manual QA. Regex syntax, search time limits, and editor links are planned for later steps.
+Sift currently searches a regular text file or recursively searches a directory for a case-insensitive literal string or slash-delimited regex, with optional `--case-sensitive` matching. See [sample searches](../samples/README.md) for manual QA. Search time limits, and editor links are planned for later steps.
 
 Use `make fmt`, `make vet`, and `make test` for checks. Tests cover literal matching, case handling, line endings, long lines, exit statuses, and I/O errors.
 

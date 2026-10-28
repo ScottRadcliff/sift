@@ -4,11 +4,11 @@
 
 Sift is a small Go CLI for searching text files, with readable results and a planned companion skill for agents.
 
-The project is in early development. It currently supports literal searches in a single file or recursively through a directory.
+The project is in early development. It currently supports literal and regex searches in a single file or recursively through a directory.
 
 ## Features
 
-- Case-insensitive search by default, with optional exact case matching.
+- Case-insensitive literal and regex search by default, with optional exact case matching.
 - Matching occurrences highlighted yellow in terminals; redirected results stay plain.
 - Results formatted as `line_number:filename matching-line`.
 - Recursive directory search that skips hidden entries, symlinks, and non-regular files.
@@ -75,7 +75,23 @@ Flags can appear before or after positional arguments. Use `--` to stop option p
 ./bin/sift -- '--help' samples/payments.txt
 ```
 
-Use `-h` or `--help` to display usage. Search strings are literal: punctuation such as `.` has no regex meaning.
+Use `-h` or `--help` to display usage. Search strings are literal unless they start with `/`: punctuation such as `.` has no regex meaning in a literal search.
+
+### Regex search
+
+Wrap an expression in slashes:
+
+```sh
+./bin/sift '/payment|retry/' samples/payments.txt
+./bin/sift '/^payment failed/i' samples/payments.txt
+./bin/sift '/Payment/' samples/payments.txt --case-sensitive
+```
+
+Both `/pattern/` and `/pattern/i` are case-insensitive by default. Use `/pattern/ --case-sensitive` for exact case; combining `/pattern/i` with that flag returns an error. Only the trailing `i` modifier is supported. Go's inline regex flags are also honored.
+
+Regexes use [Go's regex syntax](https://pkg.go.dev/regexp/syntax), with matching performed independently on each line. Lookaround and backreferences are unsupported. Patterns that match empty text select matching lines but have no visible highlight for the zero-length match. Empty `//` expressions are rejected.
+
+A search starting with `/` opts into regex parsing. To search for a literal slash-containing path, use an expression such as `'/\/etc\/hosts/'`. Quote expressions in your shell to preserve backslashes and special characters. Invalid expressions or modifiers produce an error with exit status `2` before searching any files.
 
 ### Results and diagnostics
 
@@ -121,4 +137,4 @@ Run `make help` for all targets. See the [development guide](plans/development.m
 
 ## Planned work
 
-Regex search, search time limits, clickable editor links, CSV/JSON output, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
+Search time limits, clickable editor links, CSV/JSON output, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).

@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const usage = "Usage: sift [--case-sensitive] [--no-ignore] 'search' path\n\nSearch a text file or directory recursively for a case-insensitive literal string.\nBinary files (a null byte in the first 8 KB) are skipped and reported on stderr.\nDirectory searches skip hidden entries, symlinks, and other non-regular files.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  --no-ignore       Disable .gitignore rules (hidden entries still skipped)\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error."
+const usage = "Usage: sift [--case-sensitive] [--no-ignore] 'search' path\n\nSearch a text file or directory recursively for a case-insensitive literal string or /pattern/ regex.\nRegex modifier i explicitly enables case-insensitive matching and conflicts with --case-sensitive.\nBinary files (a null byte in the first 8 KB) are skipped and reported on stderr.\nDirectory searches skip hidden entries, symlinks, and other non-regular files.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  --no-ignore       Disable .gitignore rules (hidden entries still skipped)\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error."
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
@@ -33,7 +33,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 
-	matched, err := searchPath(opts.path, stdout, stderr, opts.term, opts.caseSensitive, opts.noIgnore)
+	matched, err := searchPath(opts.path, stdout, stderr, opts.pattern, opts.noIgnore)
 	if err != nil {
 		fmt.Fprintf(stderr, "sift: %v\n", err)
 		return 2
@@ -47,18 +47,18 @@ func run(args []string, stdout, stderr io.Writer) int {
 // A failed output stream stops traversal rather than reporting an error for each file.
 var errOutput = errors.New("cannot write results")
 
-func searchPath(path string, stdout, stderr io.Writer, term string, caseSensitive, noIgnore bool) (bool, error) {
+func searchPath(path string, stdout, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return false, err
 	}
 	if info.IsDir() {
-		return searchDirectory(path, stdout, stderr, term, caseSensitive, noIgnore)
+		return searchDirectory(path, stdout, stderr, pattern, noIgnore)
 	}
-	return searchFile(path, stdout, stderr, term, caseSensitive)
+	return searchFile(path, stdout, stderr, pattern)
 }
 
-func searchDirectory(path string, stdout, stderr io.Writer, term string, caseSensitive, noIgnore bool) (bool, error) {
+func searchDirectory(path string, stdout, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
 	matched := false
 	hadFileErrors := false
 	ignores := newIgnoreRules(path)
@@ -82,7 +82,7 @@ func searchDirectory(path string, stdout, stderr io.Writer, term string, caseSen
 		}
 		if walkErr == nil && entry.Type().IsRegular() {
 			var found bool
-			found, walkErr = searchFile(filename, stdout, stderr, term, caseSensitive)
+			found, walkErr = searchFile(filename, stdout, stderr, pattern)
 			matched = matched || found
 		}
 		if errors.Is(walkErr, errOutput) {
@@ -103,7 +103,7 @@ func searchDirectory(path string, stdout, stderr io.Writer, term string, caseSen
 	return matched, nil
 }
 
-func searchFile(filename string, output, diagnostics io.Writer, term string, caseSensitive bool) (bool, error) {
+func searchFile(filename string, output, diagnostics io.Writer, pattern *regexp.Regexp) (bool, error) {
 	info, err := os.Stat(filename)
 	if err != nil {
 		return false, err
@@ -125,20 +125,14 @@ func searchFile(filename string, output, diagnostics io.Writer, term string, cas
 		reportSkippedBinary(diagnostics, filename)
 		return false, nil
 	}
-	matched, err := search(reader, output, term, filename, caseSensitive)
+	matched, err := search(reader, output, pattern, filename)
 	if err != nil {
 		return matched, fmt.Errorf("%s: %w", filename, err)
 	}
 	return matched, nil
 }
 
-func search(input io.Reader, output io.Writer, term, filename string, caseSensitive bool) (bool, error) {
-	// QuoteMeta keeps punctuation literal while Go's case folding handles Unicode.
-	expression := regexp.QuoteMeta(term)
-	if !caseSensitive {
-		expression = "(?i)" + expression
-	}
-	pattern := regexp.MustCompile(expression)
+func search(input io.Reader, output io.Writer, pattern *regexp.Regexp, filename string) (bool, error) {
 	color := supportsColor(output)
 	reader := bufio.NewReader(input)
 	matched := false
