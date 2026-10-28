@@ -1,16 +1,10 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
 const usage = "Usage: sift [--case-sensitive] [--no-ignore] 'search' path\n\nSearch a text file or directory recursively for a case-insensitive literal string or /pattern/ regex.\nRegex modifier i explicitly enables case-insensitive matching and conflicts with --case-sensitive.\nBinary files (a null byte in the first 8 KB) are skipped and reported on stderr.\nDirectory searches skip hidden entries, symlinks, and other non-regular files.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  --no-ignore       Disable .gitignore rules (hidden entries still skipped)\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error."
@@ -42,119 +36,4 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	return 0
-}
-
-// A failed output stream stops traversal rather than reporting an error for each file.
-var errOutput = errors.New("cannot write results")
-
-func searchPath(path string, stdout, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false, err
-	}
-	if info.IsDir() {
-		return searchDirectory(path, stdout, stderr, pattern, noIgnore)
-	}
-	return searchFile(path, stdout, stderr, pattern)
-}
-
-func searchDirectory(path string, stdout, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
-	matched := false
-	hadFileErrors := false
-	ignores := newIgnoreRules(path)
-	err := filepath.WalkDir(path, func(filename string, entry fs.DirEntry, walkErr error) error {
-		// The explicitly requested root is searched even if its name starts with a dot.
-		if entry != nil && filename != path && strings.HasPrefix(entry.Name(), ".") {
-			if entry.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if walkErr == nil && !noIgnore {
-			skip, err := ignores.check(filename, entry)
-			if skip {
-				if entry.IsDir() {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			walkErr = err
-		}
-		if walkErr == nil && entry.Type().IsRegular() {
-			var found bool
-			found, walkErr = searchFile(filename, stdout, stderr, pattern)
-			matched = matched || found
-		}
-		if errors.Is(walkErr, errOutput) {
-			return walkErr
-		}
-		if walkErr != nil {
-			fmt.Fprintf(stderr, "sift: %v\n", walkErr)
-			hadFileErrors = true
-		}
-		return nil
-	})
-	if err != nil {
-		return matched, err
-	}
-	if hadFileErrors {
-		return matched, errors.New("directory search completed with errors")
-	}
-	return matched, nil
-}
-
-func searchFile(filename string, output, diagnostics io.Writer, pattern *regexp.Regexp) (bool, error) {
-	info, err := os.Stat(filename)
-	if err != nil {
-		return false, err
-	}
-	if !info.Mode().IsRegular() {
-		return false, fmt.Errorf("%s: expected a regular file", filename)
-	}
-	file, err := os.Open(filename)
-	if err != nil {
-		return false, err
-	}
-	defer file.Close()
-	reader := bufio.NewReaderSize(file, 8192)
-	prefix, err := reader.Peek(8192)
-	if err != nil && err != io.EOF {
-		return false, fmt.Errorf("%s: %w", filename, err)
-	}
-	if bytes.IndexByte(prefix, 0) >= 0 {
-		reportSkippedBinary(diagnostics, filename)
-		return false, nil
-	}
-	matched, err := search(reader, output, pattern, filename)
-	if err != nil {
-		return matched, fmt.Errorf("%s: %w", filename, err)
-	}
-	return matched, nil
-}
-
-func search(input io.Reader, output io.Writer, pattern *regexp.Regexp, filename string) (bool, error) {
-	color := supportsColor(output)
-	reader := bufio.NewReader(input)
-	matched := false
-	for lineNumber := 1; ; lineNumber++ {
-		line, err := reader.ReadString('\n')
-		if err != nil && err != io.EOF {
-			return matched, err
-		}
-		if len(line) > 0 {
-			line = strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
-			if pattern.MatchString(line) {
-				if color {
-					line = highlightMatches(line, pattern)
-				}
-				if _, writeErr := fmt.Fprintf(output, "%d:%s %s\n", lineNumber, filename, line); writeErr != nil {
-					return matched, fmt.Errorf("%w: %w", errOutput, writeErr)
-				}
-				matched = true
-			}
-		}
-		if err == io.EOF {
-			return matched, nil
-		}
-	}
 }

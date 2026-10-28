@@ -42,24 +42,31 @@ func (r *ignoreRules) check(filename string, entry fs.DirEntry) (bool, error) {
 	}
 	// Copy inherited patterns before appending, so siblings cannot overwrite them.
 	r.patterns[filename] = append([]gitignore.Pattern(nil), patterns...)
-	file, err := os.Open(filepath.Join(filename, ".gitignore"))
+	loaded, err := readIgnoreFile(filepath.Join(filename, ".gitignore"), domain)
+	r.patterns[filename] = append(r.patterns[filename], loaded...)
+	return false, err
+}
+
+func readIgnoreFile(filename string, domain []string) ([]gitignore.Pattern, error) {
+	file, err := os.Open(filename)
 	if errors.Is(err, os.ErrNotExist) {
-		return false, nil
+		return nil, nil
 	}
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer file.Close()
+	var patterns []gitignore.Pattern
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.TrimSuffix(scanner.Text(), "\r")
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		r.patterns[filename] = append(r.patterns[filename], gitignore.ParsePattern(line, domain))
+		patterns = append(patterns, gitignore.ParsePattern(line, domain))
 	}
 	if err := scanner.Err(); err != nil {
-		return false, &os.PathError{Op: "read", Path: file.Name(), Err: err}
+		return patterns, &os.PathError{Op: "read", Path: file.Name(), Err: err}
 	}
-	return false, nil
+	return patterns, nil
 }

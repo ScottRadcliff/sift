@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -28,5 +29,21 @@ func highlightMatches(line string, pattern *regexp.Regexp) string {
 			return ""
 		}
 		return "\x1b[33m" + match + "\x1b[0m"
+	})
+}
+
+// A failed output stream stops traversal rather than reporting an error for each file.
+var errOutput = errors.New("cannot write results")
+
+func search(input io.Reader, output io.Writer, pattern *regexp.Regexp, filename string) (bool, error) {
+	color := supportsColor(output)
+	return scanMatches(input, pattern, func(lineNumber int, text string) error {
+		if color {
+			text = highlightMatches(text, pattern)
+		}
+		if _, err := fmt.Fprintf(output, "%d:%s %s\n", lineNumber, filename, text); err != nil {
+			return fmt.Errorf("%w: %w", errOutput, err)
+		}
+		return nil
 	})
 }

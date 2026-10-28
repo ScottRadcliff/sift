@@ -8,17 +8,17 @@ import (
 )
 
 type options struct {
-	pattern       *regexp.Regexp
-	path          string
-	caseSensitive bool
-	noIgnore      bool
-	help          bool
+	pattern  *regexp.Regexp
+	path     string
+	noIgnore bool
+	help     bool
 }
 
 var errArguments = errors.New("provide a non-empty search string and one file or directory")
 
 func parseArgs(args []string) (options, error) {
 	opts := options{help: len(args) == 0}
+	caseSensitive := false
 	var positional []string
 	parseOptions := true
 	for _, arg := range args {
@@ -28,7 +28,7 @@ func parseArgs(args []string) (options, error) {
 				parseOptions = false
 				continue
 			case "--case-sensitive":
-				opts.caseSensitive = true
+				caseSensitive = true
 				continue
 			case "--no-ignore":
 				opts.noIgnore = true
@@ -50,7 +50,7 @@ func parseArgs(args []string) (options, error) {
 		return options{}, errArguments
 	}
 	opts.path = positional[1]
-	pattern, err := compileSearch(positional[0], opts.caseSensitive)
+	pattern, err := compileSearch(positional[0], caseSensitive)
 	if err != nil {
 		return options{}, err
 	}
