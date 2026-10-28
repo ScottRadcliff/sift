@@ -10,6 +10,7 @@ type options struct {
 	term          string
 	path          string
 	caseSensitive bool
+	noIgnore      bool
 	help          bool
 }
 
@@ -27,6 +28,9 @@ func parseArgs(args []string) (options, error) {
 				continue
 			case "--case-sensitive":
 				opts.caseSensitive = true
+				continue
+			case "--no-ignore":
+				opts.noIgnore = true
 				continue
 			case "--help", "-h":
 				opts.help = true

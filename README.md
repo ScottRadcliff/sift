@@ -11,6 +11,7 @@ The project is in early development. It currently supports literal searches in a
 - Case-insensitive search by default, with optional exact case matching.
 - Results formatted as `line_number:filename matching-line`.
 - Recursive directory search that skips hidden entries, symlinks, and non-regular files.
+- `.gitignore` rules within the search directory, with a `--no-ignore` override.
 - Binary-file detection: files containing a null byte in the first 8 KB are skipped and reported on stderr.
 - Yellow skipped-file messages in terminals; plain diagnostics when redirected.
 - Continued directory searching after unreadable files, with an error exit status.
@@ -58,6 +59,14 @@ Match case exactly:
 ```sh
 ./bin/sift 'Payment' samples/payments.txt --case-sensitive
 ```
+
+Search ignored paths too:
+
+```sh
+./bin/sift 'payment' samples/ignore/ --no-ignore
+```
+
+Directory searches read `.gitignore` files in the requested directory and its descendants. Ancestor ignore files, global Git settings, and `.git/info/exclude` are not read. Explicitly named files are searched regardless of ignore rules. `--no-ignore` does not enable hidden files or binary files.
 
 Flags can appear before or after positional arguments. Use `--` to stop option parsing when a literal search string or path starts with a hyphen:
 
@@ -111,4 +120,4 @@ Run `make help` for all targets. See the [development guide](plans/development.m
 
 ## Planned work
 
-Ignore-file support, regex search, search time limits, match highlighting, clickable editor links, CSV/JSON output, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
+Regex search, search time limits, match highlighting, clickable editor links, CSV/JSON output, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).

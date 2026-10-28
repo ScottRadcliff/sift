@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const usage = "Usage: sift [--case-sensitive] 'search' path\n\nSearch a text file or directory recursively for a case-insensitive literal string.\nBinary files (a null byte in the first 8 KB) are skipped and reported on stderr.\nDirectory searches skip hidden entries, symlinks, and other non-regular files.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error."
+const usage = "Usage: sift [--case-sensitive] [--no-ignore] 'search' path\n\nSearch a text file or directory recursively for a case-insensitive literal string.\nBinary files (a null byte in the first 8 KB) are skipped and reported on stderr.\nDirectory searches skip hidden entries, symlinks, and other non-regular files.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  --no-ignore       Disable .gitignore rules (hidden entries still skipped)\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error."
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
@@ -33,7 +33,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 
-	matched, err := searchPath(opts.path, stdout, stderr, opts.term, opts.caseSensitive)
+	matched, err := searchPath(opts.path, stdout, stderr, opts.term, opts.caseSensitive, opts.noIgnore)
 	if err != nil {
 		fmt.Fprintf(stderr, "sift: %v\n", err)
 		return 2
@@ -47,20 +47,21 @@ func run(args []string, stdout, stderr io.Writer) int {
 // A failed output stream stops traversal rather than reporting an error for each file.
 var errOutput = errors.New("cannot write results")
 
-func searchPath(path string, stdout, stderr io.Writer, term string, caseSensitive bool) (bool, error) {
+func searchPath(path string, stdout, stderr io.Writer, term string, caseSensitive, noIgnore bool) (bool, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return false, err
 	}
 	if info.IsDir() {
-		return searchDirectory(path, stdout, stderr, term, caseSensitive)
+		return searchDirectory(path, stdout, stderr, term, caseSensitive, noIgnore)
 	}
 	return searchFile(path, stdout, stderr, term, caseSensitive)
 }
 
-func searchDirectory(path string, stdout, stderr io.Writer, term string, caseSensitive bool) (bool, error) {
+func searchDirectory(path string, stdout, stderr io.Writer, term string, caseSensitive, noIgnore bool) (bool, error) {
 	matched := false
 	hadFileErrors := false
+	ignores := newIgnoreRules(path)
 	err := filepath.WalkDir(path, func(filename string, entry fs.DirEntry, walkErr error) error {
 		// The explicitly requested root is searched even if its name starts with a dot.
 		if entry != nil && filename != path && strings.HasPrefix(entry.Name(), ".") {
@@ -68,6 +69,16 @@ func searchDirectory(path string, stdout, stderr io.Writer, term string, caseSen
 				return filepath.SkipDir
 			}
 			return nil
+		}
+		if walkErr == nil && !noIgnore {
+			skip, err := ignores.check(filename, entry)
+			if skip {
+				if entry.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			walkErr = err
 		}
 		if walkErr == nil && entry.Type().IsRegular() {
 			var found bool
