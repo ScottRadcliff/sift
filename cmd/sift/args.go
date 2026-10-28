@@ -12,6 +12,7 @@ type options struct {
 	path     string
 	noIgnore bool
 	csvPath  string
+	json     bool
 	help     bool
 }
 
@@ -34,6 +35,9 @@ func parseArgs(args []string) (options, error) {
 				continue
 			case "--no-ignore":
 				opts.noIgnore = true
+				continue
+			case "--json":
+				opts.json = true
 				continue
 			case "--csv":
 				if opts.csvPath != "" {

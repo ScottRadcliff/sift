@@ -14,15 +14,32 @@ type matchOutput struct {
 	csv      *csv.Writer
 	file     *os.File
 	fileInfo os.FileInfo
+	result   *jsonResult
 }
 
 func executeSearch(opts options, stdout, stderr io.Writer) (bool, error) {
 	output, err := openMatchOutput(stdout, opts.csvPath)
 	if err != nil {
+		if opts.json {
+			result := newJSONResult()
+			result.Errors = append(result.Errors, err.Error())
+			err = errors.Join(err, writeJSON(stdout, result))
+		}
 		return false, err
 	}
+	if opts.json {
+		output.result = newJSONResult()
+	}
 	matched, searchErr := searchPath(opts.path, output, stderr, opts.pattern, opts.noIgnore)
-	return matched, errors.Join(searchErr, output.finish())
+	err = errors.Join(searchErr, output.finish())
+	if output.result != nil {
+		output.result.Complete = err == nil
+		if err != nil {
+			output.result.Errors = append(output.result.Errors, err.Error())
+		}
+		err = errors.Join(err, writeJSON(stdout, output.result))
+	}
+	return matched, err
 }
 
 func openMatchOutput(terminal io.Writer, csvPath string) (*matchOutput, error) {

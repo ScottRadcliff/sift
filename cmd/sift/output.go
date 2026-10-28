@@ -41,6 +41,10 @@ func search(input io.Reader, output *matchOutput, pattern *regexp.Regexp, filena
 		if err := output.writeCSV(filename, lineNumber, text); err != nil {
 			return fmt.Errorf("%w: %w", errOutput, err)
 		}
+		if output.result != nil {
+			output.result.Matches = append(output.result.Matches, jsonMatch{filename, lineNumber, text})
+			return nil
+		}
 		if color {
 			text = highlightMatches(text, pattern)
 		}

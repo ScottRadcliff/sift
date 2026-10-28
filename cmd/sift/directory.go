@@ -14,12 +14,17 @@ import (
 func searchPath(path string, output *matchOutput, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
 	info, err := os.Stat(path)
 	if err != nil {
+		output.recordSkip(path, "search_error", err.Error())
 		return false, err
 	}
 	if info.IsDir() {
 		return searchDirectory(path, output, stderr, pattern, noIgnore)
 	}
-	return searchFile(path, output, stderr, pattern)
+	matched, err := searchFile(path, output, stderr, pattern)
+	if err != nil && !errors.Is(err, errOutput) {
+		output.recordSkip(path, "search_error", err.Error())
+	}
+	return matched, err
 }
 
 func searchDirectory(path string, output *matchOutput, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
@@ -43,6 +48,8 @@ func searchDirectory(path string, output *matchOutput, stderr io.Writer, pattern
 			return walkErr
 		}
 		if walkErr != nil {
+			output.recordSkip(filename, "search_error", walkErr.Error())
+			output.recordError(walkErr)
 			fmt.Fprintf(stderr, "sift: %v\n", walkErr)
 			hadFileErrors = true
 		}

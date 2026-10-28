@@ -9,6 +9,7 @@ The project is in early development. It currently supports literal and regex sea
 ## Features
 
 - Case-insensitive literal and regex search by default, with optional exact case matching.
+- JSON results for agents, including matches, skipped files, errors, and completion status.
 - CSV export with filename, line number, and original matching-line text.
 - Matching occurrences highlighted yellow in terminals; redirected results stay plain.
 - Results formatted as `line_number:filename matching-line`.
@@ -104,9 +105,35 @@ Terminal results still appear, with highlighting when supported. The CSV contain
 
 The output file must not already exist. Choose a new filename for each export. If the export is inside the searched directory, Sift excludes it from the search. No matches produce a header-only CSV and exit status `1`. Search errors retain any partial export and return status `2`; check stderr before treating an export as complete.
 
+### JSON output
+
+```sh
+./bin/sift 'payment failed' samples/payments.txt --json
+```
+
+Stdout contains one JSON object:
+
+```json
+{
+  "matches": [
+    {"filename": "samples/payments.txt", "line_number": 2, "text": "Payment failed for order 1002."},
+    {"filename": "samples/payments.txt", "line_number": 4, "text": "PAYMENT FAILED for order 1003."}
+  ],
+  "skipped_files": [],
+  "errors": [],
+  "complete": true
+}
+```
+
+Matches preserve original text and contain no added terminal formatting. Arrays are empty arrays rather than `null` when there are no entries. `skipped_files` records binary files with reason `binary`, and paths that could not be searched with reason `search_error` and an `error` detail. Hidden entries and ignored paths are intentionally excluded and are not listed.
+
+Search errors return partial results with `complete: false` and error messages. A completed search can have no matches (exit status `1`) or binary skips. Exit statuses remain `0`, `1`, and `2`; diagnostics also go to stderr. Argument/regex validation failures produce only stderr and status `2`, before a search result exists; help requests still print help text.
+
+Combine `--json` and `--csv filename` to write JSON to stdout and export the same matches to CSV. JSON results are collected in memory and written after the search finishes.
+
 ### Results and diagnostics
 
-Matches go to stdout. Errors and skipped binary-file messages go to stderr, so they can be redirected independently:
+Matches go to stdout (as a JSON object when `--json` is used). Errors and skipped binary-file messages go to stderr, so they can be redirected independently:
 
 ```sh
 ./bin/sift 'payment failed' samples/tree/ > matches.txt 2> diagnostics.txt
@@ -148,4 +175,4 @@ Run `make help` for all targets. See the [development guide](plans/development.m
 
 ## Planned work
 
-Search time limits, clickable editor links, JSON output, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
+Search time limits, clickable editor links, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).

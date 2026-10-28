@@ -152,3 +152,19 @@ samples/export/payments.txt,3,PAYMENT café receipt requested.
 Terminal results still appear, with yellow matching text when color is enabled. CSV values preserve original text without adding color codes.
 
 Repeat the search with the same output filename: it should report an error and exit with status 2, leaving the existing CSV unchanged. To check regex export, choose another new file and run `./bin/sift '/failed|support/' samples/export/ --csv "$qa_dir/regex.csv"`; expect two data rows. No matches produce a header-only CSV and status 1. Search errors produce status 2 and may leave a partial CSV.
+
+## JSON output
+
+```sh
+./bin/sift 'payment failed' samples/payments.txt --json
+./bin/sift 'payment failed' samples/tree/ --json
+./bin/sift 'missing' samples/payments.txt --json
+./bin/sift 'payment' samples/missing.txt --json
+```
+
+- The first command returns two matches, empty `skipped_files` and `errors` arrays, and `complete: true` (status 0).
+- The directory search returns two matches and a `skipped_files` entry for `samples/tree/binary.dat` with reason `binary`; completion stays true (status 0). Hidden entries are not listed.
+- No matches return empty arrays and `complete: true` (status 1).
+- The missing file returns no matches, a `search_error` skip, error details, and `complete: false` (status 2).
+
+Stdout is a single JSON object with no added color escapes or human-readable result lines. Diagnostics remain on stderr. `--json` can appear before or after the search arguments and can be combined with `--csv` using a new export filename. Invalid arguments or regexes fail before searching and produce only stderr; `--help` prints ordinary help text.

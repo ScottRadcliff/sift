@@ -28,6 +28,7 @@ func searchFile(filename string, output *matchOutput, diagnostics io.Writer, pat
 		return false, fmt.Errorf("%s: %w", filename, err)
 	}
 	if bytes.IndexByte(prefix, 0) >= 0 {
+		output.recordSkip(filename, "binary", "")
 		reportSkippedBinary(diagnostics, filename)
 		return false, nil
 	}
