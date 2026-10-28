@@ -2,7 +2,7 @@
 
 ![Sift — a metal sifter filtering code fragments into matching results](assets/sift-banner.png)
 
-Sift is a small Go CLI for searching text files, with readable results and a planned companion skill for agents.
+Sift is a small Go CLI for searching text files, with readable results and a companion skill for agents.
 
 The project is in early development. It currently supports literal and regex searches in a single file or recursively through a directory.
 
@@ -18,6 +18,7 @@ The project is in early development. It currently supports literal and regex sea
 - Binary-file detection: files containing a null byte in the first 8 KB are skipped and reported on stderr.
 - Yellow skipped-file messages in terminals; plain diagnostics when redirected.
 - Continued directory searching after unreadable files, with an error exit status.
+- Companion agent skill for conversational searches and exports.
 - Sample files and automated tests for development and QA.
 
 ## Build locally
@@ -173,6 +174,29 @@ For a persistent workspace, run `make up` in one terminal and `make shell` in an
 
 Run `make help` for all targets. See the [development guide](plans/development.md) for build overrides and the [sample QA guide](samples/README.md) for expected results.
 
+## Agent skill
+
+The companion skill lives in [skills/sift/SKILL.md](skills/sift/SKILL.md). It teaches an agent to translate natural-language requests into CLI options, read JSON results, report skipped files and incomplete searches, and export CSV.
+
+To try the repository copy directly, tell the agent:
+
+> Use the Sift skill at `skills/sift/SKILL.md` to find payment failures in `samples/`. The executable is `./bin/sift`.
+
+For Codex discovery across projects, link the skill into the documented personal skills location. From the repository root:
+
+```sh
+mkdir -p "$HOME/.agents/skills"
+ln -s "$PWD/skills/sift" "$HOME/.agents/skills/sift"
+```
+
+The link command refuses to replace an existing skill. Keep the checkout at that path. Codex supports symlinked skill folders; see the [official skill discovery documentation](https://learn.chatgpt.com/docs/build-skills). If the new skill does not appear, restart Codex.
+
+The executable is installed separately. Build it with `make build` and `make binary`, then add this checkout's `bin` directory to the PATH used by your agent, or give the agent the binary's absolute path. Installing the skill alone does not install the executable.
+
+Once discovered, invoke it naturally or explicitly:
+
+> Use $sift to find payment failures in this project and export them to a new CSV.
+
 ## Planned work
 
-Search time limits, clickable editor links, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
+Search time limits, interactive continuation prompts, spelling suggestions, and clickable editor links are not implemented yet. See the [implementation plan](plans/implementation-plan.md).

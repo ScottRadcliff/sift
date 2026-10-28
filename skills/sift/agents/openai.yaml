@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sift"
+  short_description: "Search local text files with the Sift CLI"
+  default_prompt: "Use $sift to find payment failures in this project."

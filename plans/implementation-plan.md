@@ -108,3 +108,9 @@ Use samples/ for repeatable manual QA in both Docker and the host terminal. Incl
 The executable and skill are separate installations. Initially, developers use make build, make binary, and make install, then add ~/.local/bin to PATH if needed. The host executable requires no Go installation.
 
 Install skills/sift into the chosen agent's supported skill directory. The skill expects sift on PATH and should provide a clear installation hint if it is missing. Document agent-specific installation when implementing the skill rather than assuming one directory works for every agent.
+
+## Current milestone: companion skill
+
+Implemented the instruction-only skill in `skills/sift/SKILL.md`, with Codex UI metadata in `skills/sift/agents/openai.yaml`. It covers the current CLI contract: literal/regex searches, case handling, ignore rules, JSON interpretation, skipped-file reporting, CSV exports, and executable discovery. README installation instructions keep skill discovery separate from executable setup.
+
+Next, return to the remaining CLI work in small steps: the three-second search budget and timeout override, then interactive continuation and clickable editor links. Column positions/match spans, spelling suggestions, and installation/release packaging remain outstanding. Update the skill as those capabilities become available; it must not prescribe unimplemented flags.
