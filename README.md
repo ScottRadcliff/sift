@@ -9,6 +9,7 @@ The project is in early development. It currently supports literal searches in a
 ## Features
 
 - Case-insensitive search by default, with optional exact case matching.
+- Matching occurrences highlighted yellow in terminals; redirected results stay plain.
 - Results formatted as `line_number:filename matching-line`.
 - Recursive directory search that skips hidden entries, symlinks, and non-regular files.
 - `.gitignore` rules within the search directory, with a `--no-ignore` override.
@@ -84,7 +85,7 @@ Matches go to stdout. Errors and skipped binary-file messages go to stderr, so t
 ./bin/sift 'payment failed' samples/tree/ > matches.txt 2> diagnostics.txt
 ```
 
-Set `NO_COLOR=1` to disable colored diagnostics. Color is also disabled for `TERM=dumb`.
+Set `NO_COLOR=1` to disable color for both matches and diagnostics. Color is also disabled for `TERM=dumb`.
 
 | Exit status | Meaning |
 | --- | --- |
@@ -120,4 +121,4 @@ Run `make help` for all targets. See the [development guide](plans/development.m
 
 ## Planned work
 
-Regex search, search time limits, match highlighting, clickable editor links, CSV/JSON output, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
+Regex search, search time limits, clickable editor links, CSV/JSON output, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).

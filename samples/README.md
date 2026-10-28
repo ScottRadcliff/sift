@@ -89,3 +89,15 @@ Expected output (exit status 0):
 `./bin/sift 'payment' samples/ignore/ --no-ignore` includes all four sample text files, including `skipped.tmp` and `nested/local.txt`. Explicitly naming `samples/ignore/skipped.tmp` also searches it without requiring the flag.
 
 Rules come from `.gitignore` in the requested directory and visited subdirectories; parent directories, global Git settings, and `.git/info/exclude` are not read. Patterns support wildcards, directory rules, and `!` exceptions. An excluded directory is not traversed, so an exception for a file inside it cannot re-include that file. Rules apply to matching paths regardless of whether Git tracks them. Ignored paths are silently skipped. Hidden entries remain skipped with `--no-ignore`.
+
+## Match highlighting
+
+In a terminal, matching occurrences appear yellow while preserving their original case. Line numbers, filenames, and surrounding text stay uncolored.
+
+```sh
+./bin/sift 'payment' samples/payments.txt
+NO_COLOR=1 ./bin/sift 'payment' samples/payments.txt
+./bin/sift 'payment' samples/payments.txt > /tmp/sift-matches.txt
+```
+
+The first command highlights each match; the second disables color. The redirected file contains plain text without color escapes. `TERM=dumb` also disables color.

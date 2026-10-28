@@ -139,6 +139,7 @@ func search(input io.Reader, output io.Writer, term, filename string, caseSensit
 		expression = "(?i)" + expression
 	}
 	pattern := regexp.MustCompile(expression)
+	color := supportsColor(output)
 	reader := bufio.NewReader(input)
 	matched := false
 	for lineNumber := 1; ; lineNumber++ {
@@ -149,6 +150,9 @@ func search(input io.Reader, output io.Writer, term, filename string, caseSensit
 		if len(line) > 0 {
 			line = strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
 			if pattern.MatchString(line) {
+				if color {
+					line = highlightMatches(line, pattern)
+				}
 				if _, writeErr := fmt.Fprintf(output, "%d:%s %s\n", lineNumber, filename, line); writeErr != nil {
 					return matched, fmt.Errorf("%w: %w", errOutput, writeErr)
 				}
