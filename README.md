@@ -174,6 +174,18 @@ For a persistent workspace, run `make up` in one terminal and `make shell` in an
 
 Run `make help` for all targets. See the [development guide](plans/development.md) for build overrides and the [sample QA guide](samples/README.md) for expected results.
 
+## Continuous integration
+
+[Go CI](.github/workflows/ci.yml) runs on pushes and pull requests and can also be started manually from GitHub Actions. It uses the Go version in `go.mod` and caches dependencies and build output.
+
+The Linux job checks formatting, verifies downloaded modules, runs `go vet`, runs tests with race detection and coverage, and builds the CLI. Formatting is checked without modifying source files. Coverage is reported without enforcing a minimum percentage.
+
+Local development remains Docker-based. To run the CI test command locally:
+
+```sh
+docker compose run --rm dev go test -race -count=1 -timeout=60s -coverprofile=coverage.out ./...
+```
+
 ## Agent skill
 
 The companion skill lives in [skills/sift/SKILL.md](skills/sift/SKILL.md). It teaches an agent to translate natural-language requests into CLI options, read JSON results, report skipped files and incomplete searches, and export CSV.
