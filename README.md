@@ -9,6 +9,7 @@ The project is in early development. It currently supports literal and regex sea
 ## Features
 
 - Case-insensitive literal and regex search by default, with optional exact case matching.
+- CSV export with filename, line number, and original matching-line text.
 - Matching occurrences highlighted yellow in terminals; redirected results stay plain.
 - Results formatted as `line_number:filename matching-line`.
 - Recursive directory search that skips hidden entries, symlinks, and non-regular files.
@@ -93,6 +94,16 @@ Regexes use [Go's regex syntax](https://pkg.go.dev/regexp/syntax), with matching
 
 A search starting with `/` opts into regex parsing. To search for a literal slash-containing path, use an expression such as `'/\/etc\/hosts/'`. Quote expressions in your shell to preserve backslashes and special characters. Invalid expressions or modifiers produce an error with exit status `2` before searching any files.
 
+### CSV export
+
+```sh
+./bin/sift 'payment' samples/export/ --csv matches.csv
+```
+
+Terminal results still appear, with highlighting when supported. The CSV contains a header and one row per matching line, using columns `filename`, `line_number`, and `text`. Values preserve the original case and contain no added terminal color codes; commas and quotes are escaped as CSV.
+
+The output file must not already exist. Choose a new filename for each export. If the export is inside the searched directory, Sift excludes it from the search. No matches produce a header-only CSV and exit status `1`. Search errors retain any partial export and return status `2`; check stderr before treating an export as complete.
+
 ### Results and diagnostics
 
 Matches go to stdout. Errors and skipped binary-file messages go to stderr, so they can be redirected independently:
@@ -137,4 +148,4 @@ Run `make help` for all targets. See the [development guide](plans/development.m
 
 ## Planned work
 
-Search time limits, clickable editor links, CSV/JSON output, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
+Search time limits, clickable editor links, JSON output, and the companion agent skill are not implemented yet. See the [implementation plan](plans/implementation-plan.md).

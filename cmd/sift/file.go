@@ -9,7 +9,7 @@ import (
 	"regexp"
 )
 
-func searchFile(filename string, output, diagnostics io.Writer, pattern *regexp.Regexp) (bool, error) {
+func searchFile(filename string, output *matchOutput, diagnostics io.Writer, pattern *regexp.Regexp) (bool, error) {
 	info, err := os.Stat(filename)
 	if err != nil {
 		return false, err

@@ -11,6 +11,7 @@ type options struct {
 	pattern  *regexp.Regexp
 	path     string
 	noIgnore bool
+	csvPath  string
 	help     bool
 }
 
@@ -21,7 +22,8 @@ func parseArgs(args []string) (options, error) {
 	caseSensitive := false
 	var positional []string
 	parseOptions := true
-	for _, arg := range args {
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
 		if parseOptions {
 			switch arg {
 			case "--":
@@ -32,6 +34,16 @@ func parseArgs(args []string) (options, error) {
 				continue
 			case "--no-ignore":
 				opts.noIgnore = true
+				continue
+			case "--csv":
+				if opts.csvPath != "" {
+					return options{}, fmt.Errorf("--csv may only be specified once")
+				}
+				if i+1 >= len(args) || args[i+1] == "" || strings.HasPrefix(args[i+1], "-") {
+					return options{}, fmt.Errorf("--csv requires an output filename; use ./ for a filename starting with -")
+				}
+				i++
+				opts.csvPath = args[i]
 				continue
 			case "--help", "-h":
 				opts.help = true

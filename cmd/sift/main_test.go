@@ -25,7 +25,7 @@ func TestSearch(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			var output bytes.Buffer
-			matched, err := search(strings.NewReader(tt.text), &output, testPattern(t, tt.term, false), "sample.txt")
+			matched, err := search(strings.NewReader(tt.text), &matchOutput{terminal: &output}, testPattern(t, tt.term, false), "sample.txt")
 			if err != nil || matched != (tt.want != "") || output.String() != tt.want {
 				t.Fatalf("matched=%v err=%v; output matches expectation: %v", matched, err, output.String() == tt.want)
 			}
@@ -91,17 +91,17 @@ func (failingIO) Read([]byte) (int, error)  { return 0, io.ErrUnexpectedEOF }
 func (failingIO) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
 
 func TestSearchIOErrors(t *testing.T) {
-	if _, err := search(failingIO{}, io.Discard, testPattern(t, "term", false), "sample"); !errors.Is(err, io.ErrUnexpectedEOF) {
+	if _, err := search(failingIO{}, &matchOutput{terminal: io.Discard}, testPattern(t, "term", false), "sample"); !errors.Is(err, io.ErrUnexpectedEOF) {
 		t.Fatalf("read error: %v", err)
 	}
-	if _, err := search(strings.NewReader("term"), failingIO{}, testPattern(t, "term", false), "sample"); !errors.Is(err, io.ErrClosedPipe) {
+	if _, err := search(strings.NewReader("term"), &matchOutput{terminal: failingIO{}}, testPattern(t, "term", false), "sample"); !errors.Is(err, io.ErrClosedPipe) {
 		t.Fatalf("write error: %v", err)
 	}
 }
 
 func TestCaseSensitiveSearch(t *testing.T) {
 	var output bytes.Buffer
-	matched, err := search(strings.NewReader("CAFÉ\ncafé\ncafÉ\n"), &output, testPattern(t, "café", true), "sample")
+	matched, err := search(strings.NewReader("CAFÉ\ncafé\ncafÉ\n"), &matchOutput{terminal: &output}, testPattern(t, "café", true), "sample")
 	if err != nil || !matched || output.String() != "2:sample café\n" {
 		t.Fatalf("matched=%v err=%v output=%q", matched, err, output.String())
 	}

@@ -129,3 +129,26 @@ Matching portions are yellow in terminals. Additional checks:
 - `./bin/sift '/payment/i' samples/payments.txt --case-sensitive`: conflicting case options, status 2.
 
 Expressions are matched per line using Go regex syntax; only trailing `i` is supported. `/pattern/` follows the default case-insensitive behavior unless `--case-sensitive` is used. Empty `//` patterns are rejected. A leading slash reserves regex syntax; use a regex with escaped slashes when searching literal paths.
+
+## CSV export
+
+Use a fresh temporary directory so repeated QA runs never overwrite an export:
+
+```sh
+qa_dir=$(mktemp -d)
+./bin/sift 'payment' samples/export/payments.txt --csv "$qa_dir/matches.csv"
+cat "$qa_dir/matches.csv"
+```
+
+Expected CSV:
+
+```csv
+filename,line_number,text
+samples/export/payments.txt,1,"Payment failed, retry requested."
+samples/export/payments.txt,2,"Payment note: ""call support""."
+samples/export/payments.txt,3,PAYMENT café receipt requested.
+```
+
+Terminal results still appear, with yellow matching text when color is enabled. CSV values preserve original text without adding color codes.
+
+Repeat the search with the same output filename: it should report an error and exit with status 2, leaving the existing CSV unchanged. To check regex export, choose another new file and run `./bin/sift '/failed|support/' samples/export/ --csv "$qa_dir/regex.csv"`; expect two data rows. No matches produce a header-only CSV and status 1. Search errors produce status 2 and may leave a partial CSV.

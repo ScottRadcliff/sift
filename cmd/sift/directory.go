@@ -11,18 +11,18 @@ import (
 	"strings"
 )
 
-func searchPath(path string, stdout, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
+func searchPath(path string, output *matchOutput, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return false, err
 	}
 	if info.IsDir() {
-		return searchDirectory(path, stdout, stderr, pattern, noIgnore)
+		return searchDirectory(path, output, stderr, pattern, noIgnore)
 	}
-	return searchFile(path, stdout, stderr, pattern)
+	return searchFile(path, output, stderr, pattern)
 }
 
-func searchDirectory(path string, stdout, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
+func searchDirectory(path string, output *matchOutput, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
 	matched := false
 	hadFileErrors := false
 	ignores := newIgnoreRules(path)
@@ -34,9 +34,9 @@ func searchDirectory(path string, stdout, stderr io.Writer, pattern *regexp.Rege
 		if walkErr == nil {
 			walkErr = filterErr
 		}
-		if walkErr == nil && entry.Type().IsRegular() {
+		if walkErr == nil && entry.Type().IsRegular() && !output.isExport(filename) {
 			var found bool
-			found, walkErr = searchFile(filename, stdout, stderr, pattern)
+			found, walkErr = searchFile(filename, output, stderr, pattern)
 			matched = matched || found
 		}
 		if errors.Is(walkErr, errOutput) {

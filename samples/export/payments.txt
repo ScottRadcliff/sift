@@ -1,0 +1,3 @@
+Payment failed, retry requested.
+Payment note: "call support".
+PAYMENT café receipt requested.
