@@ -28,13 +28,13 @@ Use the path from the user's request or the current project context. If no narro
 
 ## Execute and interpret
 
-Use `--json` for agent calls. Capture stdout, stderr, and the process exit status separately. Examples assume the executable is on PATH:
+Use `--json --no-interactive` for agent calls. Capture stdout, stderr, and the process exit status separately. Examples assume the executable is on PATH:
 
 ```sh
-sift 'payment failed' app/ --json
+sift 'payment failed' app/ --json --no-interactive
 sift 'Payment' app/ --case-sensitive --json
-sift '/payment|retry/' app/ --json
-sift --json -- '--help' app/
+sift '/payment|retry/' app/ --json --no-interactive
+sift --json --no-interactive -- '--help' app/
 ```
 
 Stdout contains one object with:
@@ -57,14 +57,14 @@ For an invalid regex, explain the diagnostic and suggest a corrected expression 
 
 On status `3` or `timed_out: true`, show any partial matches and explain that the search stopped at its time budget. Offer a narrower path, a longer budget such as `--timeout 10s`, or unlimited search with `--timeout 0`. Do not automatically widen or remove the budget unless the user has already requested or authorized that search duration. A rerun starts from the beginning; there is no resume token. Use a new CSV filename for a rerun so the previous partial export is preserved.
 
-The CLI does not ask interactive questions yet; handle continuation conversationally. Deadline checks are cooperative, so an OS operation or regex match in progress and output finalization can extend wall-clock duration. No stdout while a command is still running does not mean zero matches.
+The CLI can prompt on timeout only when all standard streams are terminals. Agent calls should use JSON and `--no-interactive` and handle continuation conversationally. Deadline checks are cooperative, so an OS operation or regex match in progress and output finalization can extend wall-clock duration. No stdout while a command is still running does not mean zero matches.
 
 ## CSV exports
 
 When the user requests CSV, combine `--json` with `--csv`:
 
 ```sh
-sift 'payment' app/ --json --csv results.csv
+sift 'payment' app/ --json --no-interactive --csv results.csv
 ```
 
 Use the requested destination. If none is given, choose a descriptive new filename in the working directory and report it. Existing files are never overwritten; on a collision, choose a sibling filename unless the exact destination is required. Do not delete an existing export to get around this behavior.
@@ -73,4 +73,4 @@ CSV columns are `filename`, `line_number`, and `text`. An export inside the sear
 
 ## Current boundaries
 
-Do not invoke `--no-interactive`: that flag does not exist. The CLI currently does not prompt, resume searches or suggest misspellings. Ignore rules are read only within the requested directory and descendants, not from ancestors, global settings, or `.git/info/exclude`. Binary detection checks for a null byte in the first 8 KB; UTF-16 is commonly skipped.
+The CLI does not resume an interrupted traversal or suggest misspellings. Ignore rules are read only within the requested directory and descendants, not from ancestors, global settings, or `.git/info/exclude`. Binary detection checks for a null byte in the first 8 KB; UTF-16 is commonly skipped.

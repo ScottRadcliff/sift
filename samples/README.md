@@ -208,3 +208,32 @@ Click each `line_number:filename` location using your terminal's link gesture. E
 The first command disables terminal links. The redirected file contains no Sift-added terminal escapes. JSON remains plain JSON even when hyperlinks are forced. `NO_COLOR=1` disables yellow highlighting while retaining clickable locations; use `--hyperlinks never` to disable those separately.
 
 To use another editor, set `SIFT_EDITOR_URL` to its registered URL template; see the main README. `file://{path}` uses the system's default file application but cannot guarantee cursor positioning. Actual click handling depends on your terminal and installed URL handler; automated checks verify emitted targets and positions, not launching your editor.
+
+## Interactive timeout continuation
+
+Run in a real terminal:
+
+```sh
+./bin/sift 'payment' samples/payments.txt --timeout 1ns
+```
+
+Expect the timeout prompt. Enter `y`: the command restarts without a limit, prints all four matching lines, and exits with status 0. Enter `n` or press Enter on another run: it exits with status 3. A restart begins at the first file, so any prior partial matches can repeat.
+
+```sh
+./bin/sift 'payment' samples/payments.txt --timeout 1ns --no-interactive
+./bin/sift 'payment' samples/payments.txt --timeout 1ns --json
+./bin/sift 'payment' samples/payments.txt --timeout 1ns > /tmp/sift-timeout-results.txt
+```
+
+These commands must return status 3 without prompting. Piped stdin and redirected stderr also disable prompts.
+
+To test CSV preservation, choose a fresh temporary directory and accept the prompt:
+
+```sh
+qa_dir=$(mktemp -d)
+./bin/sift 'payment' samples/payments.txt --timeout 1ns --csv "$qa_dir/matches.csv"
+cat "$qa_dir/matches.csv"
+cat "$qa_dir/matches.continued.csv"
+```
+
+The original partial CSV remains intact (with a tiny budget, usually just its header); the continued export contains four data rows. Existing continuation names cause a numbered sibling to be chosen instead. A CSV export inside the search tree is not searched on the restart, and neither is the original partial export.

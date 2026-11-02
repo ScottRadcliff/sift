@@ -9,7 +9,7 @@ make binary
 ./bin/sift --help
 ```
 
-Sift currently searches a regular text file or recursively searches a directory for a case-insensitive literal string or slash-delimited regex, with optional `--case-sensitive` matching. See [sample searches](../samples/README.md) for manual QA. Searches default to a three-second budget; `--timeout 0` disables it. Editor links use the VS Code URL handler by default; set `SIFT_EDITOR_URL` to choose another handler. Interactive continuation is planned for a later step.
+Sift currently searches a regular text file or recursively searches a directory for a case-insensitive literal string or slash-delimited regex, with optional `--case-sensitive` matching. See [sample searches](../samples/README.md) for manual QA. Searches default to a three-second budget; `--timeout 0` disables it. Editor links use the VS Code URL handler by default; set `SIFT_EDITOR_URL` to choose another handler. Interactive terminal timeouts offer an unlimited restart; use `--no-interactive` for scripts.
 
 Use `make fmt`, `make vet`, and `make test` for checks. Tests cover literal matching, case handling, line endings, long lines, exit statuses, and I/O errors.
 

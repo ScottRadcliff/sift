@@ -9,6 +9,7 @@ The project is in early development. It currently supports literal and regex sea
 ## Features
 
 - Case-insensitive literal and regex search by default, with optional exact case matching.
+- Interactive timeout continuation with an explicit `--no-interactive` option.
 - Three-second search budget, configurable with `--timeout` (use `0` for unlimited).
 - JSON results for agents, including matches, skipped files, errors, and completion status.
 - CSV export with filename, line number, and original matching-line text.
@@ -170,7 +171,15 @@ Searches default to a three-second budget after argument validation. Override it
 
 When the budget expires, Sift retains matches already emitted, flushes any partial CSV export, and returns status `3`. JSON includes `complete: false` and `timed_out: true`, plus an explanatory error. Output-write failures return status `2` even if a timeout also occurred. CSV/JSON finalization runs after search cancellation so partial results can be saved.
 
-Checks occur between directory entries, buffered reads, and line matches. This is a cooperative search budget, not a hard wall-clock limit: an OS operation or regex match already in progress, and output finalization, can extend elapsed time beyond it. Sift currently exits without asking to continue. A rerun starts from the beginning; choose a new CSV filename because existing exports are never overwritten.
+Checks occur between directory entries, buffered reads, and line matches. This is a cooperative search budget, not a hard wall-clock limit: an OS operation or regex match already in progress, and output finalization, can extend elapsed time beyond it. When stdin, stdout, and stderr are terminals (and `TERM` is not `dumb`), Sift asks whether to restart a timed-out search without a time limit. Enter `y` or `yes` to accept; Enter, `n`, or EOF declines. The prompt explains that a restart begins from the first file, so terminal matches may repeat. After accepting, the exit status reflects the restarted search; declining retains status `3`.
+
+JSON output, redirected or piped streams, and `--no-interactive` never prompt:
+
+```sh
+./bin/sift 'payment' . --timeout 10s --no-interactive
+```
+
+For interactive CSV searches, accepting preserves the partial export and creates a new sibling such as `matches.continued.csv`, then `matches.continued-2.csv` if that name exists. Both the partial export and the new export are excluded from the restarted search. Sift reports both paths and never overwrites existing files. Manual reruns still need a new CSV filename.
 
 ### Results and diagnostics
 
@@ -252,4 +261,4 @@ Once discovered, invoke it naturally or explicitly:
 
 ## Planned work
 
-Interactive continuation prompts and spelling suggestions are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
+Spelling suggestions and release packaging remain planned. See the [implementation plan](plans/implementation-plan.md).

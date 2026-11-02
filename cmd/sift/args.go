@@ -9,14 +9,16 @@ import (
 )
 
 type options struct {
-	pattern    *regexp.Regexp
-	path       string
-	noIgnore   bool
-	csvPath    string
-	json       bool
-	help       bool
-	timeout    time.Duration
-	hyperlinks string
+	pattern       *regexp.Regexp
+	path          string
+	noIgnore      bool
+	csvPath       string
+	json          bool
+	help          bool
+	timeout       time.Duration
+	hyperlinks    string
+	noInteractive bool
+	previousCSV   string
 }
 
 var errArguments = errors.New("provide a non-empty search string and one file or directory")
@@ -38,6 +40,9 @@ func parseArgs(args []string) (options, error) {
 				continue
 			case "--no-ignore":
 				opts.noIgnore = true
+				continue
+			case "--no-interactive":
+				opts.noInteractive = true
 				continue
 			case "--json":
 				opts.json = true

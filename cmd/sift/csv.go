@@ -11,12 +11,13 @@ import (
 )
 
 type matchOutput struct {
-	terminal  io.Writer
-	csv       *csv.Writer
-	file      *os.File
-	fileInfo  os.FileInfo
-	result    *jsonResult
-	locations locationFormatter
+	terminal       io.Writer
+	csv            *csv.Writer
+	file           *os.File
+	fileInfo       os.FileInfo
+	result         *jsonResult
+	locations      locationFormatter
+	previousExport os.FileInfo
 }
 
 func executeSearch(opts options, stdout, stderr io.Writer) (bool, error) {
@@ -108,11 +109,11 @@ func (o *matchOutput) finish() error {
 
 // A CSV created inside the search tree must not become one of its own inputs.
 func (o *matchOutput) isExport(filename string) bool {
-	if o.fileInfo == nil {
+	if o.fileInfo == nil && o.previousExport == nil {
 		return false
 	}
 	info, err := os.Stat(filename)
-	return err == nil && os.SameFile(o.fileInfo, info)
+	return err == nil && ((o.fileInfo != nil && os.SameFile(o.fileInfo, info)) || (o.previousExport != nil && os.SameFile(o.previousExport, info)))
 }
 
 func openSearchOutput(opts options, stdout io.Writer) (*matchOutput, error) {
@@ -124,10 +125,18 @@ func openSearchOutput(opts options, stdout io.Writer) (*matchOutput, error) {
 	if err != nil {
 		return nil, err
 	}
+	var previous os.FileInfo
+	if opts.previousCSV != "" {
+		previous, err = os.Stat(opts.previousCSV)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, err
+		}
+	}
 	output, err := openMatchOutput(stdout, opts.csvPath)
 	if err != nil {
 		return nil, err
 	}
 	output.locations = locations
+	output.previousExport = previous
 	return output, nil
 }
