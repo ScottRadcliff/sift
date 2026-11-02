@@ -11,7 +11,7 @@ Translate the user's search request into Sift arguments, execute the search, and
 
 Use `sift` from PATH. In the Sift checkout, `./bin/sift` is also supported; otherwise use an executable path supplied by the user. Do not assume the installed skill folder contains the executable or that the current project is the Sift checkout.
 
-If no executable is available, explain that the CLI must be built in its checkout with `make build` and `make binary`, then made available on PATH or supplied by absolute path. Do not silently substitute another search engine and describe its output as Sift results.
+If no executable is available, explain that the CLI can be installed from its checkout with `make build` and `make install` (default `~/.local/bin`), then made available on PATH or supplied by absolute path. For checkout-only development, use `make binary` and `./bin/sift`. Do not silently substitute another search engine and describe its output as Sift results.
 
 Use `sift --version` (or the selected binary path with `--version`) when checking which build is installed. Version output is plain text, not the JSON search schema.
 

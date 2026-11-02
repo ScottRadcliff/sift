@@ -38,7 +38,31 @@ make binary
 
 `make binary` writes `bin/sift` for your host OS and architecture, even when Docker runs Linux. Once built, the executable runs directly on your computer without Docker.
 
-There is no installer or release package yet. Rebuild with `make binary` after changing the code.
+Rebuild with `make binary` after changing the code. Downloadable release packages are not available yet.
+
+### Install locally
+
+```sh
+make install
+```
+
+This builds a host-native binary using Docker, creates `~/.local/bin` if needed, and installs `sift` there with executable permissions. An existing `sift` in that destination is replaced, allowing updates. The installed binary runs without Docker or Go.
+
+If that directory is not on your PATH:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+sift --version
+```
+
+Add the PATH setting to your shell configuration to keep it across terminal sessions. Use a version label or a different destination when needed:
+
+```sh
+make install VERSION=v0.1.0-local
+make install INSTALL_DIR="$HOME/bin"
+```
+
+Installation defaults to the `dev` version label. `make install` installs only the CLI; the agent skill is installed separately.
 
 ### Build version
 
@@ -270,7 +294,7 @@ ln -s "$PWD/skills/sift" "$HOME/.agents/skills/sift"
 
 The link command refuses to replace an existing skill. Keep the checkout at that path. Codex supports symlinked skill folders; see the [official skill discovery documentation](https://learn.chatgpt.com/docs/build-skills). If the new skill does not appear, restart Codex.
 
-The executable is installed separately. Build it with `make build` and `make binary`, then add this checkout's `bin` directory to the PATH used by your agent, or give the agent the binary's absolute path. Installing the skill alone does not install the executable.
+The executable is installed separately. Use `make install` and ensure the installation directory is on the PATH used by your agent, or give the agent the binary's absolute path. Installing the skill alone does not install the executable.
 
 Once discovered, invoke it naturally or explicitly:
 

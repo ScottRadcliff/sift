@@ -17,7 +17,7 @@ Commands use disposable containers and do not require `make up`. Module and buil
 
 `make run ARGS="'payment failed' samples/payments.txt"` passes arguments to Sift inside Docker. Only mounted paths are visible there; the repository is mounted at `/workspace`. Use the host executable for host paths and terminal editor links.
 
-`make binary` builds for the host OS and architecture, including macOS, rather than Docker's Linux platform. Override with `HOST_OS=linux HOST_ARCH=arm64`, for example. Installation and release packaging will come in a later step.
+`make binary` builds for the host OS and architecture, including macOS, rather than Docker's Linux platform. Override with `HOST_OS=linux HOST_ARCH=arm64`, for example. Use `make install` to build and install into `~/.local/bin`, or override `INSTALL_DIR`. Downloadable release packaging remains a later step.
 
 For an optional persistent workspace, run `make up` in one terminal, then `make shell` in another. Go has no standard REPL, so there is no console target. `make down` removes containers and networks while retaining caches. No ports, database, or other services are needed.
 
@@ -25,4 +25,15 @@ The image and module pin Go 1.26.9; update them together. The temporary module n
 
 ## Versioned development builds
 
-`make binary` defaults to the version label `dev`. Use `make binary VERSION=v0.1.0-local` to embed a different single-token label through Go linker flags, then check it with `./bin/sift --version`. `make run ARGS=--version VERSION=v0.1.0-local` supports the same override. Local installation and downloadable release binaries remain separate follow-up work.
+`make binary` defaults to the version label `dev`. Use `make binary VERSION=v0.1.0-local` to embed a different single-token label through Go linker flags, then check it with `./bin/sift --version`. `make run ARGS=--version VERSION=v0.1.0-local` supports the same override. Local installation is available through `make install VERSION=...`; downloadable release binaries remain follow-up work.
+
+## Verify installation in isolation
+
+```sh
+install_qa=$(mktemp -d)
+make install INSTALL_DIR="$install_qa/bin" VERSION=v0.1.0-install-qa
+"$install_qa/bin/sift" --version
+"$install_qa/bin/sift" 'payment failed' samples/payments.txt
+```
+
+Expect `sift v0.1.0-install-qa` and two matching lines. The target creates the destination directory, sets mode 0755, and replaces an existing executable on subsequent installations. It does not edit PATH or install the agent skill. Run `make binary` afterward to restore the checkout binary's default `dev` label.
