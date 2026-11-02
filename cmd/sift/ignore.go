@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"io/fs"
 	"os"
@@ -14,12 +15,13 @@ import (
 // Rules are scoped to the requested directory and its descendants. Keeping each
 // directory's inherited rules separate prevents nested rules affecting siblings.
 type ignoreRules struct {
+	ctx      context.Context
 	root     string
 	patterns map[string][]gitignore.Pattern
 }
 
-func newIgnoreRules(root string) *ignoreRules {
-	return &ignoreRules{root: filepath.Clean(root), patterns: make(map[string][]gitignore.Pattern)}
+func newIgnoreRules(ctx context.Context, root string) *ignoreRules {
+	return &ignoreRules{ctx: ctx, root: filepath.Clean(root), patterns: make(map[string][]gitignore.Pattern)}
 }
 
 func (r *ignoreRules) check(filename string, entry fs.DirEntry) (bool, error) {
@@ -42,12 +44,12 @@ func (r *ignoreRules) check(filename string, entry fs.DirEntry) (bool, error) {
 	}
 	// Copy inherited patterns before appending, so siblings cannot overwrite them.
 	r.patterns[filename] = append([]gitignore.Pattern(nil), patterns...)
-	loaded, err := readIgnoreFile(filepath.Join(filename, ".gitignore"), domain)
+	loaded, err := readIgnoreFile(r.ctx, filepath.Join(filename, ".gitignore"), domain)
 	r.patterns[filename] = append(r.patterns[filename], loaded...)
 	return false, err
 }
 
-func readIgnoreFile(filename string, domain []string) ([]gitignore.Pattern, error) {
+func readIgnoreFile(ctx context.Context, filename string, domain []string) ([]gitignore.Pattern, error) {
 	file, err := os.Open(filename)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
@@ -57,8 +59,11 @@ func readIgnoreFile(filename string, domain []string) ([]gitignore.Pattern, erro
 	}
 	defer file.Close()
 	var patterns []gitignore.Pattern
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(contextReader{ctx, file})
 	for scanner.Scan() {
+		if err := ctx.Err(); err != nil {
+			return patterns, err
+		}
 		line := strings.TrimSuffix(scanner.Text(), "\r")
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue

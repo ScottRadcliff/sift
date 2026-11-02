@@ -22,6 +22,7 @@ type jsonResult struct {
 	Matches      []jsonMatch `json:"matches"`
 	SkippedFiles []jsonSkip  `json:"skipped_files"`
 	Errors       []string    `json:"errors"`
+	TimedOut     bool        `json:"timed_out"`
 	Complete     bool        `json:"complete"`
 }
 
@@ -31,7 +32,7 @@ func newJSONResult() *jsonResult {
 
 func writeJSON(output io.Writer, result *jsonResult) error {
 	if err := json.NewEncoder(output).Encode(result); err != nil {
-		return fmt.Errorf("write JSON: %w", err)
+		return fmt.Errorf("%w: write JSON: %w", errOutput, err)
 	}
 	return nil
 }

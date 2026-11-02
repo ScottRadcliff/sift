@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -18,6 +19,16 @@ type matchOutput struct {
 }
 
 func executeSearch(opts options, stdout, stderr io.Writer) (bool, error) {
+	ctx := context.Background()
+	if opts.timeout == 0 {
+		return executeSearchContext(ctx, opts, stdout, stderr)
+	}
+	ctx, cancel := context.WithTimeout(ctx, opts.timeout)
+	defer cancel()
+	return executeSearchContext(ctx, opts, stdout, stderr)
+}
+
+func executeSearchContext(ctx context.Context, opts options, stdout, stderr io.Writer) (bool, error) {
 	output, err := openMatchOutput(stdout, opts.csvPath)
 	if err != nil {
 		if opts.json {
@@ -30,10 +41,18 @@ func executeSearch(opts options, stdout, stderr io.Writer) (bool, error) {
 	if opts.json {
 		output.result = newJSONResult()
 	}
-	matched, searchErr := searchPath(opts.path, output, stderr, opts.pattern, opts.noIgnore)
+	matched, searchErr := searchPath(ctx, opts.path, output, stderr, opts.pattern, opts.noIgnore)
+	if searchErr == nil {
+		searchErr = ctx.Err()
+	}
+	timedOut := errors.Is(searchErr, context.DeadlineExceeded)
+	if timedOut {
+		searchErr = fmt.Errorf("search time limit exceeded; partial results retained; rerun with --timeout 10s or --timeout 0: %w", searchErr)
+	}
 	err = errors.Join(searchErr, output.finish())
 	if output.result != nil {
 		output.result.Complete = err == nil
+		output.result.TimedOut = timedOut
 		if err != nil {
 			output.result.Errors = append(output.result.Errors, err.Error())
 		}
@@ -81,7 +100,7 @@ func (o *matchOutput) finish() error {
 	}
 	o.csv.Flush()
 	if err := errors.Join(o.csv.Error(), o.file.Close()); err != nil {
-		return fmt.Errorf("finish CSV export: %w", err)
+		return fmt.Errorf("%w: finish CSV export: %w", errOutput, err)
 	}
 	return nil
 }

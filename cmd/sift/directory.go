@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,27 +12,33 @@ import (
 	"strings"
 )
 
-func searchPath(path string, output *matchOutput, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
+func searchPath(ctx context.Context, path string, output *matchOutput, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	info, err := os.Stat(path)
 	if err != nil {
 		output.recordSkip(path, "search_error", err.Error())
 		return false, err
 	}
 	if info.IsDir() {
-		return searchDirectory(path, output, stderr, pattern, noIgnore)
+		return searchDirectory(ctx, path, output, stderr, pattern, noIgnore)
 	}
-	matched, err := searchFile(path, output, stderr, pattern)
-	if err != nil && !errors.Is(err, errOutput) {
+	matched, err := searchFile(ctx, path, output, stderr, pattern)
+	if err != nil && !errors.Is(err, errOutput) && ctx.Err() == nil {
 		output.recordSkip(path, "search_error", err.Error())
 	}
 	return matched, err
 }
 
-func searchDirectory(path string, output *matchOutput, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
+func searchDirectory(ctx context.Context, path string, output *matchOutput, stderr io.Writer, pattern *regexp.Regexp, noIgnore bool) (bool, error) {
 	matched := false
 	hadFileErrors := false
-	ignores := newIgnoreRules(path)
+	ignores := newIgnoreRules(ctx, path)
 	err := filepath.WalkDir(path, func(filename string, entry fs.DirEntry, walkErr error) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		skip, filterErr := skipEntry(path, filename, entry, ignores, noIgnore || walkErr != nil)
 		if skip {
 			return skipWalkEntry(entry)
@@ -41,11 +48,14 @@ func searchDirectory(path string, output *matchOutput, stderr io.Writer, pattern
 		}
 		if walkErr == nil && entry.Type().IsRegular() && !output.isExport(filename) {
 			var found bool
-			found, walkErr = searchFile(filename, output, stderr, pattern)
+			found, walkErr = searchFile(ctx, filename, output, stderr, pattern)
 			matched = matched || found
 		}
 		if errors.Is(walkErr, errOutput) {
 			return walkErr
+		}
+		if err := ctx.Err(); err != nil {
+			return err
 		}
 		if walkErr != nil {
 			output.recordSkip(filename, "search_error", walkErr.Error())

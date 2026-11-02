@@ -48,7 +48,7 @@ Expected output (exit status 0, files visited in lexical order):
 Add `--case-sensitive` to return only the lowercase match in the nested file.
 Hidden files and directories, symlinks, and other non-regular entries are skipped during traversal. An explicitly named hidden file or directory can still be searched. Unreadable files or directories are reported on stderr, remaining files are searched, and the final exit status is 2 even if matches were found.
 
-Search time limits are not implemented yet. Use this small sample tree for directory QA.
+Use this small sample tree for directory QA. Searches default to a three-second budget.
 
 ## Binary files
 
@@ -168,3 +168,23 @@ Repeat the search with the same output filename: it should report an error and e
 - The missing file returns no matches, a `search_error` skip, error details, and `complete: false` (status 2).
 
 Stdout is a single JSON object with no added color escapes or human-readable result lines. Diagnostics remain on stderr. `--json` can appear before or after the search arguments and can be combined with `--csv` using a new export filename. Invalid arguments or regexes fail before searching and produce only stderr; `--help` prints ordinary help text.
+
+## Search timeout
+
+```sh
+./bin/sift 'payment' samples/payments.txt --timeout 10s --json
+./bin/sift 'payment' samples/payments.txt --timeout 0 --json
+./bin/sift 'payment' samples/payments.txt --timeout 1ns --json
+```
+
+The first two return four matches with `complete: true`, `timed_out: false`, and status 0. The tiny budget demonstrates cancellation: expect status 3, `complete: false`, `timed_out: true`, and an error message. Partial match counts depend on when expiry is observed. To inspect the exit status in a terminal, run `echo $?` immediately after the search.
+
+To check partial-export finalization without leaving files in the repository:
+
+```sh
+qa_dir=$(mktemp -d)
+./bin/sift 'payment' samples/tree/ --timeout 1ns --json --csv "$qa_dir/partial.csv"
+cat "$qa_dir/partial.csv"
+```
+
+Even an immediately timed-out search writes a CSV header. Longer searches retain rows emitted before expiry. Reruns start over and require a new CSV filename. The budget is cooperative: blocked OS operations, an in-progress regex match, and export finalization can extend total elapsed time. Negative or invalid durations produce status 2 before searching.

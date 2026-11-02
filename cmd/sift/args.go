@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type options struct {
@@ -14,12 +15,13 @@ type options struct {
 	csvPath  string
 	json     bool
 	help     bool
+	timeout  time.Duration
 }
 
 var errArguments = errors.New("provide a non-empty search string and one file or directory")
 
 func parseArgs(args []string) (options, error) {
-	opts := options{help: len(args) == 0}
+	opts := options{help: len(args) == 0, timeout: 3 * time.Second}
 	caseSensitive := false
 	var positional []string
 	parseOptions := true
@@ -38,6 +40,17 @@ func parseArgs(args []string) (options, error) {
 				continue
 			case "--json":
 				opts.json = true
+				continue
+			case "--timeout":
+				if i+1 >= len(args) {
+					return options{}, fmt.Errorf("--timeout requires a duration such as 3s, 500ms, or 0")
+				}
+				i++
+				duration, err := time.ParseDuration(args[i])
+				if err != nil || duration < 0 {
+					return options{}, fmt.Errorf("invalid --timeout %q; use a non-negative duration such as 3s, 500ms, or 0", args[i])
+				}
+				opts.timeout = duration
 				continue
 			case "--csv":
 				if opts.csvPath != "" {

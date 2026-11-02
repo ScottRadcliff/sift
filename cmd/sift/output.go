@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -35,9 +36,9 @@ func highlightMatches(line string, pattern *regexp.Regexp) string {
 // A failed output stream stops traversal rather than reporting an error for each file.
 var errOutput = errors.New("cannot write results")
 
-func search(input io.Reader, output *matchOutput, pattern *regexp.Regexp, filename string) (bool, error) {
+func search(ctx context.Context, input io.Reader, output *matchOutput, pattern *regexp.Regexp, filename string) (bool, error) {
 	color := supportsColor(output.terminal)
-	return scanMatches(input, pattern, func(lineNumber int, text string) error {
+	return scanMatches(ctx, input, pattern, func(lineNumber int, text string) error {
 		if err := output.writeCSV(filename, lineNumber, text); err != nil {
 			return fmt.Errorf("%w: %w", errOutput, err)
 		}

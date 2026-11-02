@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"strings"
@@ -13,7 +14,7 @@ func TestScanMatchesCollectsPlainLines(t *testing.T) {
 		text string
 	}
 	var results []result
-	matched, err := scanMatches(strings.NewReader("skip\r\nPayment failed\r\nPAYMENT"), testPattern(t, "payment", false), func(line int, text string) error {
+	matched, err := scanMatches(context.Background(), strings.NewReader("skip\r\nPayment failed\r\nPAYMENT"), testPattern(t, "payment", false), func(line int, text string) error {
 		results = append(results, result{line, text})
 		return nil
 	})
@@ -26,7 +27,7 @@ func TestScanMatchesCollectsPlainLines(t *testing.T) {
 func TestScanMatchesStopsWhenConsumerFails(t *testing.T) {
 	stop := errors.New("consumer stopped")
 	calls := 0
-	matched, err := scanMatches(strings.NewReader("payment\npayment\npayment\n"), testPattern(t, "payment", false), func(_ int, _ string) error {
+	matched, err := scanMatches(context.Background(), strings.NewReader("payment\npayment\npayment\n"), testPattern(t, "payment", false), func(_ int, _ string) error {
 		calls++
 		if calls == 2 {
 			return stop

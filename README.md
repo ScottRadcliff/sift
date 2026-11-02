@@ -9,6 +9,7 @@ The project is in early development. It currently supports literal and regex sea
 ## Features
 
 - Case-insensitive literal and regex search by default, with optional exact case matching.
+- Three-second search budget, configurable with `--timeout` (use `0` for unlimited).
 - JSON results for agents, including matches, skipped files, errors, and completion status.
 - CSV export with filename, line number, and original matching-line text.
 - Matching occurrences highlighted yellow in terminals; redirected results stay plain.
@@ -122,15 +123,29 @@ Stdout contains one JSON object:
   ],
   "skipped_files": [],
   "errors": [],
+  "timed_out": false,
   "complete": true
 }
 ```
 
 Matches preserve original text and contain no added terminal formatting. Arrays are empty arrays rather than `null` when there are no entries. `skipped_files` records binary files with reason `binary`, and paths that could not be searched with reason `search_error` and an `error` detail. Hidden entries and ignored paths are intentionally excluded and are not listed.
 
-Search errors return partial results with `complete: false` and error messages. A completed search can have no matches (exit status `1`) or binary skips. Exit statuses remain `0`, `1`, and `2`; diagnostics also go to stderr. Argument/regex validation failures produce only stderr and status `2`, before a search result exists; help requests still print help text.
+Search errors return partial results with `complete: false` and error messages. A completed search can have no matches (exit status `1`) or binary skips. Timeouts return `timed_out: true`, `complete: false`, and status `3`. Other exit statuses remain `0`, `1`, and `2`; diagnostics also go to stderr. Argument/regex validation failures produce only stderr and status `2`, before a search result exists; help requests still print help text.
 
 Combine `--json` and `--csv filename` to write JSON to stdout and export the same matches to CSV. JSON results are collected in memory and written after the search finishes.
+
+### Search time budget
+
+Searches default to a three-second budget after argument validation. Override it with a Go-style duration, or use `0` for an unlimited search:
+
+```sh
+./bin/sift 'payment' . --timeout 10s
+./bin/sift 'payment' . --timeout 0
+```
+
+When the budget expires, Sift retains matches already emitted, flushes any partial CSV export, and returns status `3`. JSON includes `complete: false` and `timed_out: true`, plus an explanatory error. Output-write failures return status `2` even if a timeout also occurred. CSV/JSON finalization runs after search cancellation so partial results can be saved.
+
+Checks occur between directory entries, buffered reads, and line matches. This is a cooperative search budget, not a hard wall-clock limit: an OS operation or regex match already in progress, and output finalization, can extend elapsed time beyond it. Sift currently exits without asking to continue. A rerun starts from the beginning; choose a new CSV filename because existing exports are never overwritten.
 
 ### Results and diagnostics
 
@@ -147,6 +162,7 @@ Set `NO_COLOR=1` to disable color for both matches and diagnostics. Color is als
 | `0` | At least one matching line, with no search errors |
 | `1` | No matching lines, with no search errors |
 | `2` | Invalid arguments or a search/output error, including partial directory results |
+| `3` | Search time limit exceeded; results may be partial |
 
 Skipping a binary file is not an error. A search containing only skipped binary files returns `1`.
 
@@ -211,4 +227,4 @@ Once discovered, invoke it naturally or explicitly:
 
 ## Planned work
 
-Search time limits, interactive continuation prompts, spelling suggestions, and clickable editor links are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
+Interactive continuation prompts, spelling suggestions, and clickable editor links are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
