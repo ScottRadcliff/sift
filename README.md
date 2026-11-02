@@ -6,6 +6,25 @@ Sift is a small Go CLI for searching text files, with readable results and a com
 
 The project is in early development. It currently supports literal and regex searches in a single file or recursively through a directory.
 
+## Contents
+
+- [Features](#features)
+- [Build locally](#build-locally)
+- [Install locally](#install-locally)
+- [Build version](#build-version)
+- [Usage](#usage)
+- [Regex search](#regex-search)
+- [Clickable editor links](#clickable-editor-links)
+- [CSV export](#csv-export)
+- [JSON output](#json-output)
+- [Search time budget](#search-time-budget)
+- [Results and diagnostics](#results-and-diagnostics)
+- [Development](#development)
+- [Continuous integration](#continuous-integration)
+- [Release packaging](#release-packaging)
+- [Agent skill](#agent-skill)
+- [Planned work](#planned-work)
+
 ## Features
 
 - Case-insensitive literal and regex search by default, with optional exact case matching.
