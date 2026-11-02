@@ -46,10 +46,14 @@ func search(ctx context.Context, input io.Reader, output *matchOutput, pattern *
 			output.result.Matches = append(output.result.Matches, jsonMatch{filename, lineNumber, text})
 			return nil
 		}
+		location := fmt.Sprintf("%d:%s", lineNumber, filename)
+		if output.locations.enabled {
+			location = output.locations.format(filename, lineNumber, firstMatchColumn(text, pattern))
+		}
 		if color {
 			text = highlightMatches(text, pattern)
 		}
-		if _, err := fmt.Fprintf(output.terminal, "%d:%s %s\n", lineNumber, filename, text); err != nil {
+		if _, err := fmt.Fprintf(output.terminal, "%s %s\n", location, text); err != nil {
 			return fmt.Errorf("%w: %w", errOutput, err)
 		}
 		return nil

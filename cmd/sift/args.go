@@ -9,19 +9,20 @@ import (
 )
 
 type options struct {
-	pattern  *regexp.Regexp
-	path     string
-	noIgnore bool
-	csvPath  string
-	json     bool
-	help     bool
-	timeout  time.Duration
+	pattern    *regexp.Regexp
+	path       string
+	noIgnore   bool
+	csvPath    string
+	json       bool
+	help       bool
+	timeout    time.Duration
+	hyperlinks string
 }
 
 var errArguments = errors.New("provide a non-empty search string and one file or directory")
 
 func parseArgs(args []string) (options, error) {
-	opts := options{help: len(args) == 0, timeout: 3 * time.Second}
+	opts := options{help: len(args) == 0, timeout: 3 * time.Second, hyperlinks: "auto"}
 	caseSensitive := false
 	var positional []string
 	parseOptions := true
@@ -40,6 +41,18 @@ func parseArgs(args []string) (options, error) {
 				continue
 			case "--json":
 				opts.json = true
+				continue
+			case "--hyperlinks":
+				if i+1 >= len(args) {
+					return options{}, fmt.Errorf("--hyperlinks requires auto, always, or never")
+				}
+				i++
+				switch args[i] {
+				case "auto", "always", "never":
+					opts.hyperlinks = args[i]
+				default:
+					return options{}, fmt.Errorf("invalid --hyperlinks %q; use auto, always, or never", args[i])
+				}
 				continue
 			case "--timeout":
 				if i+1 >= len(args) {

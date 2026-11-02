@@ -188,3 +188,23 @@ cat "$qa_dir/partial.csv"
 ```
 
 Even an immediately timed-out search writes a CSV header. Longer searches retain rows emitted before expiry. Reruns start over and require a new CSV filename. The budget is cooperative: blocked OS operations, an in-progress regex match, and export finalization can extend total elapsed time. Negative or invalid durations produce status 2 before searching.
+
+## Clickable locations
+
+Run the host binary in an OSC 8-capable terminal with VS Code installed:
+
+```sh
+./bin/sift 'payment' 'samples/links/match locations.txt'
+```
+
+Click each `line_number:filename` location using your terminal's link gesture. Expect VS Code to open the sample at line 1 column 3, line 2 column 6, and line 3 column 4, respectively. These columns use UTF-16 units, including two units for the emoji. The filename contains a space to check URL encoding.
+
+```sh
+./bin/sift 'payment' 'samples/links/match locations.txt' --hyperlinks never
+./bin/sift 'payment' 'samples/links/match locations.txt' > /tmp/sift-plain-links.txt
+./bin/sift 'payment' 'samples/links/match locations.txt' --json --hyperlinks always
+```
+
+The first command disables terminal links. The redirected file contains no Sift-added terminal escapes. JSON remains plain JSON even when hyperlinks are forced. `NO_COLOR=1` disables yellow highlighting while retaining clickable locations; use `--hyperlinks never` to disable those separately.
+
+To use another editor, set `SIFT_EDITOR_URL` to its registered URL template; see the main README. `file://{path}` uses the system's default file application but cannot guarantee cursor positioning. Actual click handling depends on your terminal and installed URL handler; automated checks verify emitted targets and positions, not launching your editor.

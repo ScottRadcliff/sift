@@ -9,13 +9,13 @@ make binary
 ./bin/sift --help
 ```
 
-Sift currently searches a regular text file or recursively searches a directory for a case-insensitive literal string or slash-delimited regex, with optional `--case-sensitive` matching. See [sample searches](../samples/README.md) for manual QA. Searches default to a three-second budget; `--timeout 0` disables it. Interactive continuation and editor links are planned for later steps.
+Sift currently searches a regular text file or recursively searches a directory for a case-insensitive literal string or slash-delimited regex, with optional `--case-sensitive` matching. See [sample searches](../samples/README.md) for manual QA. Searches default to a three-second budget; `--timeout 0` disables it. Editor links use the VS Code URL handler by default; set `SIFT_EDITOR_URL` to choose another handler. Interactive continuation is planned for a later step.
 
 Use `make fmt`, `make vet`, and `make test` for checks. Tests cover literal matching, case handling, line endings, long lines, exit statuses, and I/O errors.
 
 Commands use disposable containers and do not require `make up`. Module and build caches persist in named Docker volumes. On Linux, commands use your host user ID and group ID so generated source and binaries remain editable.
 
-`make run ARGS="'payment failed' samples/payments.txt"` passes arguments to Sift inside Docker. Only mounted paths are visible there; the repository is mounted at `/workspace`. Use the host executable for host paths and, once implemented, terminal editor links.
+`make run ARGS="'payment failed' samples/payments.txt"` passes arguments to Sift inside Docker. Only mounted paths are visible there; the repository is mounted at `/workspace`. Use the host executable for host paths and terminal editor links.
 
 `make binary` builds for the host OS and architecture, including macOS, rather than Docker's Linux platform. Override with `HOST_OS=linux HOST_ARCH=arm64`, for example. Installation and release packaging will come in a later step.
 

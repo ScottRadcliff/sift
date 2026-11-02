@@ -11,11 +11,12 @@ import (
 )
 
 type matchOutput struct {
-	terminal io.Writer
-	csv      *csv.Writer
-	file     *os.File
-	fileInfo os.FileInfo
-	result   *jsonResult
+	terminal  io.Writer
+	csv       *csv.Writer
+	file      *os.File
+	fileInfo  os.FileInfo
+	result    *jsonResult
+	locations locationFormatter
 }
 
 func executeSearch(opts options, stdout, stderr io.Writer) (bool, error) {
@@ -29,7 +30,7 @@ func executeSearch(opts options, stdout, stderr io.Writer) (bool, error) {
 }
 
 func executeSearchContext(ctx context.Context, opts options, stdout, stderr io.Writer) (bool, error) {
-	output, err := openMatchOutput(stdout, opts.csvPath)
+	output, err := openSearchOutput(opts, stdout)
 	if err != nil {
 		if opts.json {
 			result := newJSONResult()
@@ -112,4 +113,21 @@ func (o *matchOutput) isExport(filename string) bool {
 	}
 	info, err := os.Stat(filename)
 	return err == nil && os.SameFile(o.fileInfo, info)
+}
+
+func openSearchOutput(opts options, stdout io.Writer) (*matchOutput, error) {
+	mode := opts.hyperlinks
+	if opts.json {
+		mode = "never"
+	}
+	locations, err := newLocationFormatter(stdout, mode, os.Getenv("SIFT_EDITOR_URL"))
+	if err != nil {
+		return nil, err
+	}
+	output, err := openMatchOutput(stdout, opts.csvPath)
+	if err != nil {
+		return nil, err
+	}
+	output.locations = locations
+	return output, nil
 }

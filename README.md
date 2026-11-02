@@ -13,6 +13,7 @@ The project is in early development. It currently supports literal and regex sea
 - JSON results for agents, including matches, skipped files, errors, and completion status.
 - CSV export with filename, line number, and original matching-line text.
 - Matching occurrences highlighted yellow in terminals; redirected results stay plain.
+- Clickable file locations that open the first match in a configurable editor.
 - Results formatted as `line_number:filename matching-line`.
 - Recursive directory search that skips hidden entries, symlinks, and non-regular files.
 - `.gitignore` rules within the search directory, with a `--no-ignore` override.
@@ -96,6 +97,30 @@ Both `/pattern/` and `/pattern/i` are case-insensitive by default. Use `/pattern
 Regexes use [Go's regex syntax](https://pkg.go.dev/regexp/syntax), with matching performed independently on each line. Lookaround and backreferences are unsupported. Patterns that match empty text select matching lines but have no visible highlight for the zero-length match. Empty `//` expressions are rejected.
 
 A search starting with `/` opts into regex parsing. To search for a literal slash-containing path, use an expression such as `'/\/etc\/hosts/'`. Quote expressions in your shell to preserve backslashes and special characters. Invalid expressions or modifiers produce an error with exit status `2` before searching any files.
+
+### Clickable editor links
+
+File locations are clickable in terminals that support [OSC 8 hyperlinks](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda):
+
+```sh
+./bin/sift 'payment' 'samples/links/match locations.txt'
+```
+
+The default target is VS Code, using its [file, line, and column URL handler](https://code.visualstudio.com/docs/configure/command-line#_opening-vs-code-with-urls). Click the `line_number:filename` portion (your terminal may require Cmd-click or Ctrl-click). It opens the first match on that line. Matching text remains highlighted as before.
+
+Choose a different registered editor URL handler with `SIFT_EDITOR_URL`:
+
+```sh
+SIFT_EDITOR_URL='vscode-insiders://file{path}:{line}:{column}' ./bin/sift 'payment' samples/payments.txt
+```
+
+Templates require `{path}` and may include `{line}` and `{column}`. Sift substitutes an absolute, URL-encoded path, a one-based line number, and a one-based UTF-16 column; tabs count as one character and non-BMP characters count as two. No shell command is executed by Sift. The chosen editor must be installed and registered to handle that URL scheme.
+
+To open the system's default file application, use `SIFT_EDITOR_URL='file://{path}'`. Standard file URLs do not reliably carry cursor positions, so this option opens the file without promising a line/column jump. `$EDITOR` and `$VISUAL` are not automatically executed when a link is clicked.
+
+`--hyperlinks auto` is the default: links are emitted only when stdout is a terminal and `TERM` is not `dumb`. Redirected output stays plain. Use `--hyperlinks never` to disable links, or `--hyperlinks always` to force them when capturing/testing terminal sequences. Auto mode does not guarantee the terminal supports OSC 8; unsupported terminals may show only the readable location. JSON and CSV contain no hyperlink sequences, even with `--hyperlinks always`. `NO_COLOR` controls color independently and does not disable links.
+
+Use the host binary to test editor links; paths inside Docker refer to the container's filesystem.
 
 ### CSV export
 
@@ -227,4 +252,4 @@ Once discovered, invoke it naturally or explicitly:
 
 ## Planned work
 
-Interactive continuation prompts, spelling suggestions, and clickable editor links are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
+Interactive continuation prompts and spelling suggestions are not implemented yet. See the [implementation plan](plans/implementation-plan.md).
