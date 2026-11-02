@@ -15,6 +15,7 @@ type options struct {
 	csvPath       string
 	json          bool
 	help          bool
+	version       bool
 	timeout       time.Duration
 	hyperlinks    string
 	noInteractive bool
@@ -83,6 +84,9 @@ func parseArgs(args []string) (options, error) {
 			case "--help", "-h":
 				opts.help = true
 				continue
+			case "--version":
+				opts.version = true
+				continue
 			}
 			if strings.HasPrefix(arg, "-") {
 				return options{}, fmt.Errorf("unknown option %q; use -- before literal arguments starting with -", arg)
@@ -90,7 +94,7 @@ func parseArgs(args []string) (options, error) {
 		}
 		positional = append(positional, arg)
 	}
-	if opts.help {
+	if opts.help || opts.version {
 		return opts, nil
 	}
 	if len(positional) != 2 || positional[0] == "" {

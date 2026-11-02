@@ -22,3 +22,7 @@ Commands use disposable containers and do not require `make up`. Module and buil
 For an optional persistent workspace, run `make up` in one terminal, then `make shell` in another. Go has no standard REPL, so there is no console target. `make down` removes containers and networks while retaining caches. No ports, database, or other services are needed.
 
 The image and module pin Go 1.26.9; update them together. The temporary module name is `sift`; replace it with the repository's published module path before distribution.
+
+## Versioned development builds
+
+`make binary` defaults to the version label `dev`. Use `make binary VERSION=v0.1.0-local` to embed a different single-token label through Go linker flags, then check it with `./bin/sift --version`. `make run ARGS=--version VERSION=v0.1.0-local` supports the same override. Local installation and downloadable release binaries remain separate follow-up work.

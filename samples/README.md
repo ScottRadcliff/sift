@@ -237,3 +237,19 @@ cat "$qa_dir/matches.continued.csv"
 ```
 
 The original partial CSV remains intact (with a tiny budget, usually just its header); the continued export contains four data rows. Existing continuation names cause a numbered sibling to be chosen instead. A CSV export inside the search tree is not searched on the restart, and neither is the original partial export.
+
+## Version reporting
+
+```sh
+./bin/sift --version
+```
+
+The normal development build prints `sift dev` and returns status 0 without searching or prompting. To verify build metadata:
+
+```sh
+make binary VERSION=v0.1.0-local
+./bin/sift --version
+make binary
+```
+
+The versioned build prints `sift v0.1.0-local`; the final command restores the default development build. `--version --json` still prints plain version text. Use `sift -- '--version' filename` to search for literal `--version` text instead.

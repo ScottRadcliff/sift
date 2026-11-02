@@ -13,6 +13,8 @@ Use `sift` from PATH. In the Sift checkout, `./bin/sift` is also supported; othe
 
 If no executable is available, explain that the CLI must be built in its checkout with `make build` and `make binary`, then made available on PATH or supplied by absolute path. Do not silently substitute another search engine and describe its output as Sift results.
 
+Use `sift --version` (or the selected binary path with `--version`) when checking which build is installed. Version output is plain text, not the JSON search schema.
+
 Use the host executable for host paths. Docker development commands can only search mounted paths; the Sift checkout is mounted at `/workspace`.
 
 ## Choose the search
@@ -45,7 +47,7 @@ Stdout contains one object with:
 - `timed_out`: whether the search budget expired.
 - `complete`: whether the search finished without search, timeout, or export errors. It does not mean every file was searched: binary skips can coexist with `complete: true`.
 
-Arrays are empty arrays, not null. Exit statuses are `0` for matches, `1` for no matches, `2` for an error, possibly with partial results, and `3` for a timeout. Output failures take priority and return `2` even when `timed_out` is true. A binary-only search returns `1` with a skip record. Validation failures (such as invalid regexes) return `2` with stderr and no JSON. Help requests return ordinary help text.
+Arrays are empty arrays, not null. Exit statuses are `0` for matches, `1` for no matches, `2` for an error, possibly with partial results, and `3` for a timeout. Output failures take priority and return `2` even when `timed_out` is true. A binary-only search returns `1` with a skip record. Validation failures (such as invalid regexes) return `2` with stderr and no JSON. Help and version requests return ordinary text.
 
 Parse JSON rather than the human-readable line format. Do not infer no matches from empty/truncated stdout, an interrupted process, or a still-running tool session. If the execution tool truncates output, narrow the scope or capture JSON in a temporary file outside the searched tree before parsing it.
 

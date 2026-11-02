@@ -7,13 +7,15 @@ RUN := $(COMPOSE) run --rm dev
 HOST_OS ?= $(shell uname -s | tr '[:upper:]' '[:lower:]')
 HOST_ARCH ?= $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')
 ARGS ?= --help
+VERSION ?= dev
+GO_LDFLAGS := -X main.version=$(VERSION)
 
 .PHONY: help build run binary fmt vet test up down stop restart logs ps shell
 
 help:
 	@echo "build   Build the Docker development image"
 	@echo "run     Run the CLI in Docker (ARGS defaults to --help)"
-	@echo "binary  Build bin/sift for this host (HOST_OS/HOST_ARCH override)"
+	@echo "binary  Build bin/sift for this host (VERSION=dev, HOST_OS/HOST_ARCH override)"
 	@echo "fmt     Format Go source"
 	@echo "vet     Check Go source"
 	@echo "test    Run tests"
@@ -25,10 +27,10 @@ build:
 	$(COMPOSE) build
 
 run:
-	$(RUN) go run ./cmd/sift $(ARGS)
+	$(RUN) go run -ldflags '$(GO_LDFLAGS)' ./cmd/sift $(ARGS)
 
 binary:
-	$(COMPOSE) run --rm -e CGO_ENABLED=0 -e GOOS=$(HOST_OS) -e GOARCH=$(HOST_ARCH) dev go build -o bin/sift ./cmd/sift
+	$(COMPOSE) run --rm -e CGO_ENABLED=0 -e GOOS=$(HOST_OS) -e GOARCH=$(HOST_ARCH) dev go build -ldflags '$(GO_LDFLAGS)' -o bin/sift ./cmd/sift
 
 fmt:
 	$(RUN) go fmt ./...

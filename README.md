@@ -40,6 +40,23 @@ make binary
 
 There is no installer or release package yet. Rebuild with `make binary` after changing the code.
 
+### Build version
+
+```sh
+./bin/sift --version
+```
+
+Development builds print `sift dev`. Supply a version label when building:
+
+```sh
+make binary VERSION=v0.1.0-local
+./bin/sift --version
+```
+
+This prints `sift v0.1.0-local`. The Makefile passes the label through Go linker flags (`-X main.version=...`); plain `go build` and builds without an override use `dev`. Version labels should be single tokens, such as semantic versions or versions with a commit suffix. `make run ARGS=--version VERSION=v0.1.0-local` uses the same metadata.
+
+`--version` exits successfully without searching files. Like `--help`, it produces plain text even alongside `--json`; help takes precedence when both are specified. Unknown options still produce an error.
+
 ## Usage
 
 Search a single file:

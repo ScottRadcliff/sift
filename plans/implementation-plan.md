@@ -114,3 +114,7 @@ Install skills/sift into the chosen agent's supported skill directory. The skill
 Implemented the instruction-only skill in `skills/sift/SKILL.md`, with Codex UI metadata in `skills/sift/agents/openai.yaml`. It covers the current CLI contract: literal/regex searches, case handling, ignore rules, JSON interpretation, skipped-file reporting, CSV exports, and executable discovery. README installation instructions keep skill discovery separate from executable setup.
 
 The three-second search budget and `--timeout` override are now implemented, with partial-result finalization, JSON `timed_out` status, and exit status 3. Terminal editor hyperlinks are implemented with configurable URL templates, first-match line/column positioning, and plain redirected output. Interactive timeout continuation is implemented with unlimited restarts, terminal-only prompting, `--no-interactive`, and preserved CSV exports under new filenames. JSON column positions/match spans, spelling suggestions, and installation/release packaging remain outstanding. Update the skill as those capabilities become available; it must not prescribe unimplemented flags.
+
+## Release preparation
+
+Implemented `--version`, defaulting to `sift dev`, with `make binary VERSION=...` and `make run VERSION=...` embedding a version label via Go linker flags. Next release steps are local installation (`make install`) and downloadable release binaries. A version label does not create a Git tag or publish a release.

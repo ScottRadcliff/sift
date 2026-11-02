@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const usage = "Usage: sift [--case-sensitive] [--no-ignore] [--csv filename] [--json] [--timeout duration] [--hyperlinks mode] [--no-interactive] 'search' path\n\nSearch a text file or directory recursively for a case-insensitive literal string or /pattern/ regex.\nRegex modifier i explicitly enables case-insensitive matching and conflicts with --case-sensitive.\nBinary files (a null byte in the first 8 KB) are skipped and reported on stderr.\nDirectory searches skip hidden entries, symlinks, and other non-regular files.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  --no-ignore       Disable .gitignore rules (hidden entries still skipped)\n  --csv filename    Export matches to a new CSV file\n  --json            Write structured JSON results to stdout\n  --timeout duration Search budget (default 3s; 0 disables)\n  --hyperlinks mode Clickable locations: auto (default), always, never\n  --no-interactive  Never ask to restart a timed-out search\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error, 3 timeout."
+const usage = "Usage: sift [--case-sensitive] [--no-ignore] [--csv filename] [--json] [--timeout duration] [--hyperlinks mode] [--no-interactive] 'search' path\n\nSearch a text file or directory recursively for a case-insensitive literal string or /pattern/ regex.\nRegex modifier i explicitly enables case-insensitive matching and conflicts with --case-sensitive.\nBinary files (a null byte in the first 8 KB) are skipped and reported on stderr.\nDirectory searches skip hidden entries, symlinks, and other non-regular files.\nOptions may appear before or after arguments. Use -- before literal arguments starting with -.\n  --case-sensitive  Match case exactly\n  --no-ignore       Disable .gitignore rules (hidden entries still skipped)\n  --csv filename    Export matches to a new CSV file\n  --json            Write structured JSON results to stdout\n  --timeout duration Search budget (default 3s; 0 disables)\n  --hyperlinks mode Clickable locations: auto (default), always, never\n  --no-interactive  Never ask to restart a timed-out search\n  --version        Show the build version\n  -h, --help        Show help\nExit status: 0 matches, 1 no matches, 2 error, 3 timeout."
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
@@ -29,6 +29,14 @@ func runWithInput(args []string, stdin io.Reader, stdout, stderr io.Writer) int 
 	}
 	if opts.help {
 		fmt.Fprintln(stdout, usage)
+		return 0
+	}
+
+	if opts.version {
+		if _, err := fmt.Fprintln(stdout, "sift "+version); err != nil {
+			fmt.Fprintf(stderr, "sift: write version: %v\n", err)
+			return 2
+		}
 		return 0
 	}
 
