@@ -38,7 +38,7 @@ make binary
 
 `make binary` writes `bin/sift` for your host OS and architecture, even when Docker runs Linux. Once built, the executable runs directly on your computer without Docker.
 
-Rebuild with `make binary` after changing the code. Downloadable release packages are not available yet.
+Rebuild with `make binary` after changing the code. A tag-triggered workflow prepares downloadable packages as a draft release; see [release packaging](#release-packaging). No release is published automatically.
 
 ### Install locally
 
@@ -277,6 +277,43 @@ Local development remains Docker-based. To run the CI test command locally:
 docker compose run --rm dev go test -race -count=1 -timeout=60s -coverprofile=coverage.out ./...
 ```
 
+## Release packaging
+
+[Release](.github/workflows/release.yml) runs when a version tag such as `v1.0.0` is pushed. It tests the project, cross-compiles five targets, generates SHA-256 checksums, and attaches the packages to a **draft** GitHub release for review. Prerelease tags such as `v1.0.0-rc.1` are supported.
+
+| Platform | Archive suffix |
+| --- | --- |
+| macOS Intel | `darwin_amd64.tar.gz` |
+| macOS Apple Silicon | `darwin_arm64.tar.gz` |
+| Linux Intel/AMD | `linux_amd64.tar.gz` |
+| Linux ARM64 | `linux_arm64.tar.gz` |
+| Windows x64 | `windows_amd64.zip` |
+
+Each archive is named `sift_VERSION_PLATFORM_ARCH` with the suffix above. It contains `sift` (or `sift.exe`), this README and its banner, and `skills/sift/` for installing the companion skill separately. The version tag is embedded in the executable. Checksums are listed in `checksums.txt`.
+
+To build packages locally without creating a tag or contacting GitHub:
+
+```sh
+make release VERSION=v1.0.0-rc.1
+```
+
+Packages appear under `dist/v1.0.0-rc.1/`. The output directory must be new; use `DIST_DIR` to select another location. Docker provides Go and Python 3; the packaging helper uses only Python's standard library. Native packaging with Go and Python 3 is also supported through `python3 scripts/package_release.py --version v1.0.0-rc.1 --output dist/local-review`.
+
+Once a reviewed release has been published, download the archive for your platform and `checksums.txt` from GitHub Releases. Compare the archive's SHA-256 digest with its entry in `checksums.txt` (`shasum -a 256 ARCHIVE` on macOS, `sha256sum ARCHIVE` on Linux, or `Get-FileHash ARCHIVE -Algorithm SHA256` in PowerShell).
+
+For example, after downloading a macOS Apple Silicon release into an empty directory:
+
+```sh
+tar -xzf sift_v1.0.0_darwin_arm64.tar.gz
+mkdir -p "$HOME/.local/bin"
+install -m 0755 sift "$HOME/.local/bin/sift"
+"$HOME/.local/bin/sift" --version
+```
+
+On Windows, extract the ZIP with `Expand-Archive` and run `sift.exe`; add its directory to PATH if desired. Prebuilt binaries require neither Go nor Docker. The current workflow cross-compiles all targets and smoke-tests the build platform's matching executable; it does not run the full suite on every target OS. Builds are not code-signed or notarized.
+
+See the [release guide](plans/releases.md) for local QA and the tag/draft review process.
+
 ## Agent skill
 
 The companion skill lives in [skills/sift/SKILL.md](skills/sift/SKILL.md). It teaches an agent to translate natural-language requests into CLI options, read JSON results, report skipped files and incomplete searches, and export CSV.
@@ -302,4 +339,4 @@ Once discovered, invoke it naturally or explicitly:
 
 ## Planned work
 
-Spelling suggestions and release packaging remain planned. See the [implementation plan](plans/implementation-plan.md).
+Spelling suggestions remain deferred beyond v1. See the [implementation plan](plans/implementation-plan.md).

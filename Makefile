@@ -9,15 +9,17 @@ HOST_ARCH ?= $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')
 ARGS ?= --help
 VERSION ?= dev
 GO_LDFLAGS := -X main.version=$(VERSION)
+DIST_DIR ?= dist/$(VERSION)
 INSTALL_DIR ?= $(HOME)/.local/bin
 
-.PHONY: help build run binary install fmt vet test up down stop restart logs ps shell
+.PHONY: help build run binary install release fmt vet test up down stop restart logs ps shell
 
 help:
 	@echo "build   Build the Docker development image"
 	@echo "run     Run the CLI in Docker (ARGS defaults to --help)"
 	@echo "binary  Build bin/sift for this host (VERSION=dev, HOST_OS/HOST_ARCH override)"
 	@echo "install Build and install sift (INSTALL_DIR defaults to ~/.local/bin)"
+	@echo "release Build release archives and checksums (VERSION=vX.Y.Z, DIST_DIR override)"
 	@echo "fmt     Format Go source"
 	@echo "vet     Check Go source"
 	@echo "test    Run tests"
@@ -38,6 +40,9 @@ install: binary
 	mkdir -p "$(INSTALL_DIR)"
 	install -m 0755 bin/sift "$(INSTALL_DIR)/sift"
 	@printf 'Installed %s\nEnsure %s is on your PATH.\n' "$(INSTALL_DIR)/sift" "$(INSTALL_DIR)"
+
+release:
+	$(RUN) python3 scripts/package_release.py --version "$(VERSION)" --output "$(DIST_DIR)"
 
 fmt:
 	$(RUN) go fmt ./...

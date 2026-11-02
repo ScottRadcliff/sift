@@ -117,4 +117,4 @@ The three-second search budget and `--timeout` override are now implemented, wit
 
 ## Release preparation
 
-Implemented `--version`, defaulting to `sift dev`, with `make binary VERSION=...` and `make run VERSION=...` embedding a version label via Go linker flags. Local installation is implemented with `make install`, defaulting to `~/.local/bin` and allowing `INSTALL_DIR` and `VERSION` overrides. The next release step is downloadable release binaries. A version label does not create a Git tag or publish a release.
+Implemented `--version`, defaulting to `sift dev`, with `make binary VERSION=...` and `make run VERSION=...` embedding a version label via Go linker flags. Local installation is implemented with `make install`, defaulting to `~/.local/bin` and allowing `INSTALL_DIR` and `VERSION` overrides. Downloadable release packaging is implemented with `make release VERSION=...` and a version-tag workflow that tests, cross-compiles, checksums, and creates a draft GitHub release. Published releases are never updated automatically. A version label does not create a Git tag or publish a release.

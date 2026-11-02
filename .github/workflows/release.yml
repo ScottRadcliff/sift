@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Test and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+      RELEASE_VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Verify modules and vet
+        run: |
+          go mod verify
+          go vet ./...
+      - name: Test
+        run: go test -race -count=1 -timeout=60s ./...
+      - name: Test packaging
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - name: Build release packages
+        run: python3 scripts/package_release.py --version "$RELEASE_VERSION" --output dist
+      - name: Verify checksums
+        working-directory: dist
+        run: sha256sum --check checksums.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-packages
+          path: dist/*
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  draft:
+    name: Create draft release
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-packages
+          path: dist
+      - name: Verify downloaded checksums
+        working-directory: dist
+        run: sha256sum --check checksums.txt
+      - name: Create or update draft assets
+        shell: bash
+        run: |
+          if draft=$(gh release view "$RELEASE_VERSION" --json isDraft --jq .isDraft); then
+            if [ "$draft" != true ]; then
+              echo 'Refusing to modify an already published release.' >&2
+              exit 1
+            fi
+            gh release upload "$RELEASE_VERSION" dist/* --clobber
+          else
+            flags=(--draft --verify-tag --generate-notes --title "Sift $RELEASE_VERSION")
+            if [[ "$RELEASE_VERSION" == *-* ]]; then
+              flags+=(--prerelease)
+            fi
+            gh release create "$RELEASE_VERSION" dist/* "${flags[@]}"
+          fi

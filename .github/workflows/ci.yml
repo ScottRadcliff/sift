@@ -48,5 +48,8 @@ jobs:
       - name: Test with race detection and coverage
         run: go test -race -count=1 -timeout=60s -coverprofile=coverage.out ./...
 
+      - name: Test release packaging
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+
       - name: Build CLI
         run: go build -o bin/sift ./cmd/sift

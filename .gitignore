@@ -44,3 +44,7 @@ Desktop.ini
 /tmp/
 /scratch/
 *.log
+
+# Python release-packaging cache
+__pycache__/
+*.pyc
