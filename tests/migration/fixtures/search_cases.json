@@ -1,0 +1,16 @@
+[
+  {"name":"literal punctuation and repeated occurrences", "files":{"input.txt":"a.b a.b\naXb\nA.B\n"}, "term":"a.b", "path":"input.txt", "matches":[["input.txt",1,"a.b a.b"],["input.txt",3,"A.B"]]},
+  {"name":"exact case", "files":{"input.txt":"Payment\npayment\n"}, "term":"Payment", "case_sensitive":true, "matches":[["input.txt",1,"Payment"]]},
+  {"name":"unicode and line endings", "files":{"input.txt":"CAFÉ\r\ncafé\nno final café"}, "term":"café", "matches":[["input.txt",1,"CAFÉ"],["input.txt",2,"café"],["input.txt",3,"no final café"]]},
+  {"name":"regex common subset", "files":{"input.txt":"payment\nretry\nother\n"}, "term":"^(payment|retry)$", "regex":true, "matches":[["input.txt",1,"payment"],["input.txt",2,"retry"]]},
+  {"name":"no matches", "files":{"input.txt":"other\n"}, "term":"needle", "matches":[], "status":1},
+  {"name":"nested ignores and sibling isolation", "files":{".gitignore":"# comment\n*.tmp\n!keep.tmp\nbuild/\n/root.txt\ndeep/**/secret.txt\n\\#literal\n","nested/.gitignore":"!restore.tmp\nlocal.txt\n","skip.tmp":"needle","keep.tmp":"needle","build/output.txt":"needle","root.txt":"needle","nested/root.txt":"needle","deep/secret.txt":"needle","deep/a/secret.txt":"needle","nested/restore.tmp":"needle","nested/local.txt":"needle","sibling/local.txt":"needle","sibling/restore.tmp":"needle","#literal":"needle","visible.txt":"needle"}, "term":"needle", "matches":[["keep.tmp",1,"needle"],["nested/restore.tmp",1,"needle"],["nested/root.txt",1,"needle"],["sibling/local.txt",1,"needle"],["visible.txt",1,"needle"]]},
+  {"name":"pruned directory cannot be restored", "files":{".gitignore":"blocked/\n!blocked/keep.txt\n","blocked/keep.txt":"needle"}, "term":"needle", "matches":[], "status":1},
+  {"name":"ignore escapes and directory-only patterns", "files":{".gitignore":"\\!literal\nspace\\ \ncache/\n","!literal":"needle","space ":"needle","cache/file":"needle","nested/cache":"needle","visible":"needle"}, "term":"needle", "matches":[["nested/cache",1,"needle"],["visible",1,"needle"]]},
+  {"name":"ignore override still excludes hidden", "files":{".gitignore":"ignored/\n*.tmp\n","ignored/result.tmp":"needle",".hidden":"needle"}, "term":"needle", "no_ignore":true, "matches":[["ignored/result.tmp",1,"needle"]]},
+  {"name":"explicit ignored file", "files":{".gitignore":"*.tmp\n","result.tmp":"needle"}, "term":"needle", "path":"result.tmp", "matches":[["result.tmp",1,"needle"]]},
+  {"name":"ancestor rules are not loaded", "files":{".gitignore":"*.txt\n","nested/result.txt":"needle"}, "term":"needle", "path":"nested", "matches":[["nested/result.txt",1,"needle"]]},
+  {"name":"explicit hidden root", "files":{".hidden/input":"needle",".hidden/.nested":"needle"}, "term":"needle", "path":".hidden", "matches":[[".hidden/input",1,"needle"]]},
+  {"name":"binary skip", "files":{"binary.dat":"needle\u0000","visible":"needle"}, "term":"needle", "matches":[["visible",1,"needle"]], "skips":[["binary.dat","binary"]]},
+  {"name":"binary-only search", "files":{"binary.dat":"needle\u0000"}, "term":"needle", "matches":[], "skips":[["binary.dat","binary"]], "status":1}
+]
