@@ -53,3 +53,15 @@ jobs:
 
       - name: Build CLI
         run: go build -o bin/sift ./cmd/sift
+
+      - name: Check migration contract against Go baseline
+        env:
+          SIFT_CONTRACT_COMMAND: '["${{ github.workspace }}/bin/sift"]'
+        run: python3 -m unittest discover -s tests/migration -p test_search_contract.py -v
+
+      - name: Test bundled Python helper
+        env:
+          SIFT_CONTRACT_ENGINE: python
+          SIFT_CONTRACT_COMMAND: '["python3", "${{ github.workspace }}/skills/sift/scripts/search.py"]'
+          PYTHONPATH: '${{ github.workspace }}/skills/sift/scripts/_vendor'
+        run: python3 -m unittest discover -s tests/migration -v

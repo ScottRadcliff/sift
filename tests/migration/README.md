@@ -12,13 +12,14 @@ SIFT_CONTRACT_COMMAND='["/absolute/path/to/sift/bin/sift"]' \
 
 An explicit command is required; the suite does not silently use a potentially
 stale binary. The argument is a JSON array, not shell code. The baseline must be
-a host-native build. A Python helper can later run the same preserved-behavior
+a host-native build. The bundled Python helper runs the same preserved-behavior
 checks using:
 
 ```sh
 SIFT_CONTRACT_ENGINE=python \
 SIFT_CONTRACT_COMMAND='["python3", "/absolute/path/to/skill/scripts/search.py"]' \
-  python3 -m unittest discover -s tests/migration -p test_search_contract.py -v
+PYTHONPATH=skills/sift/scripts/_vendor \
+  python3 -m unittest discover -s tests/migration -v
 ```
 
 The adapter changes only invocation syntax; it does not relax assertions for the
@@ -43,19 +44,19 @@ The prototype starts its budget before process creation and finalizes output
 after stopping/reaping the worker. The pathological-pattern test allows one
 second for startup and matching, with a five-second elapsed-time assertion to
 catch ineffective cancellation without treating small scheduling delays as bugs.
-Permission checks skip when run as root. Cross-platform CI and Python 3.11
-execution remain part of the eventual implementation validation.
+Permission checks skip when run as root. The Linux-only `/dev/full` test skips
+when that device is absent; a portable fault-injection test also checks JSON
+write failures. `test_python_helper.py` covers the actual helper, including its
+worker cleanup, timeout handling, CSV finalization failures, worker crashes, and
+operation from a copied skill folder with site packages disabled.
 
-To reproduce the ignore-library evaluation, download the pinned wheel into a
-temporary directory (development only), then include it on Python's module path:
+To run the ignore-library evaluation alone using the bundled source:
 
 ```sh
-python3 -m pip download --no-deps --only-binary=:all: \
-  --dest /tmp/sift-migration-dependencies pathspec==1.1.1
-PYTHONPATH=/tmp/sift-migration-dependencies/pathspec-1.1.1-py3-none-any.whl \
-SIFT_CONTRACT_COMMAND='["/absolute/path/to/sift/bin/sift"]' \
-  python3 -m unittest discover -s tests/migration -v
+PYTHONPATH=skills/sift/scripts/_vendor \
+  python3 -m unittest discover -s tests/migration -p test_ignore_candidate.py -v
 ```
 
-Without that wheel, the ignore-candidate test explicitly skips; the baseline and
-regex tests still run. Runtime searches will never use this download procedure.
+Without `pathspec` on the test runner's module path, the optional candidate test
+explicitly skips. The helper itself always resolves its bundled copy and needs
+no `PYTHONPATH` setup or dependency installation.

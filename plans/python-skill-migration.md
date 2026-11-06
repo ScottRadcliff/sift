@@ -91,6 +91,24 @@ Use deterministic directory ordering for reproducible results and tests, while c
 Step one is implemented; see [behavior contract and feasibility results](python-migration-step-one.md)
 and `tests/migration/README.md` for decisions, checks, and remaining integration work.
 
+Step two is implemented in `skills/sift/scripts/search.py` and `_engine.py`.
+The helper bundles unmodified pathspec 1.1.1 with its license and provenance,
+supports the preserved behavior contract, and uses a supervised subprocess for
+regex searches. CSV destinations are reserved before searching, excluded from
+results, and finalized for incomplete searches. Worker failures and output
+failures retain available results with an error status. Literal matching uses
+single-code-point Unicode folding without multi-character expansions; regex
+matching follows Python `re`. Literal deadlines remain cooperative, including
+during file reads and traversal. Regex deadlines include worker startup; output
+finalization follows cancellation.
+
+The full 32-test migration suite passes on Linux Python 3.11.2 and macOS Python
+3.12.3 (the Linux-only device test skips on macOS). Helper integration checks also
+pass on macOS Python 3.13. CI now checks the behavior contract against the Go
+baseline and runs the Python migration suite. Windows has not been tested.
+The skill instructions still select the Go CLI; switching those instructions is
+step three. Go code and its existing build/release tooling remain in place.
+
 1. **Capture the behavior contract.** Convert relevant Go tests and samples into Python behavioral fixtures. Separate preserved behavior from deliberate interface changes. Resolve ignore handling and the regex cancellation prototype. Establish the minimum interpreter and any bundled license requirements.
 2. **Implement the private helper.** Add literal search, traversal, ignores, binary/error reporting, structured results, CSV, and time budgets. Add regex with the validated cancellation design. Keep Go intact while verifying the replacement.
 3. **Switch the skill.** Replace PATH/binary discovery with an absolute skill-relative helper invocation. Update examples, regex translation, timeout units, runtime diagnostics, references, and UI metadata. Preserve normal skill discovery; skill-only packaging does not imply explicit-only invocation.
