@@ -335,11 +335,11 @@ See the [release guide](plans/releases.md) for local QA and the tag/draft review
 
 ## Agent skill
 
-The companion skill lives in [skills/sift/SKILL.md](skills/sift/SKILL.md). It teaches an agent to translate natural-language requests into CLI options, read JSON results, report skipped files and incomplete searches, and export CSV.
+The self-contained skill lives in [skills/sift/SKILL.md](skills/sift/SKILL.md). It uses a bundled Python helper to search files, interpret JSON results, report skipped files and incomplete searches, and export CSV. Python 3.11 or newer is required; the skill does not use the Go CLI documented above. Migration progress is tracked in the [Python skill migration plan](plans/python-skill-migration.md).
 
 To try the repository copy directly, tell the agent:
 
-> Use the Sift skill at `skills/sift/SKILL.md` to find payment failures in `samples/`. The executable is `./bin/sift`.
+> Use the Sift skill at `skills/sift/SKILL.md` to find payment failures in `samples/`.
 
 For Codex discovery across projects, link the skill into the documented personal skills location. From the repository root:
 
@@ -350,7 +350,7 @@ ln -s "$PWD/skills/sift" "$HOME/.agents/skills/sift"
 
 The link command refuses to replace an existing skill. Keep the checkout at that path. Codex supports symlinked skill folders; see the [official skill discovery documentation](https://learn.chatgpt.com/docs/build-skills). If the new skill does not appear, restart Codex.
 
-The executable is installed separately. Use `make install` and ensure the installation directory is on the PATH used by your agent, or give the agent the binary's absolute path. Installing the skill alone does not install the executable.
+Keep the entire skill folder, including `scripts/`, its bundled dependency, and `references/`. It can also be copied into a supported skills directory independently of this checkout. No separate executable installation, Go build, Docker, or pip setup is needed for skill searches.
 
 Once discovered, invoke it naturally or explicitly:
 

@@ -106,8 +106,10 @@ The full 32-test migration suite passes on Linux Python 3.11.2 and macOS Python
 3.12.3 (the Linux-only device test skips on macOS). Helper integration checks also
 pass on macOS Python 3.13. CI now checks the behavior contract against the Go
 baseline and runs the Python migration suite. Windows has not been tested.
-The skill instructions still select the Go CLI; switching those instructions is
-step three. Go code and its existing build/release tooling remain in place.
+Step three switches `SKILL.md` to the bundled Python helper and adds the detailed
+search-behavior reference. UI metadata now describes the file-search skill rather
+than a separate CLI. Normal skill discovery remains enabled. Go code and its
+existing build/release tooling remain in place for the later cleanup step.
 
 1. **Capture the behavior contract.** Convert relevant Go tests and samples into Python behavioral fixtures. Separate preserved behavior from deliberate interface changes. Resolve ignore handling and the regex cancellation prototype. Establish the minimum interpreter and any bundled license requirements.
 2. **Implement the private helper.** Add literal search, traversal, ignores, binary/error reporting, structured results, CSV, and time budgets. Add regex with the validated cancellation design. Keep Go intact while verifying the replacement.
