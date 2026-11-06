@@ -1,5 +1,22 @@
 # Migration checks
 
+Verify an independent skill installation:
+
+```sh
+python3 tests/migration/check_portable_skill.py
+```
+
+This copies only `skills/sift/` plus the contract and helper integration test
+harness into a temporary directory. Tests run from an unrelated project with
+spaces in its path, site packages disabled, Python environment overrides removed,
+and an empty executable PATH. All helper calls use the copied installation and
+the interpreter's absolute path. The copied harness loads no checkout code.
+The checks cover the behavior fixtures, regex timeouts, errors, skips, Unicode,
+CSV creation and collisions, worker cleanup, and another copied-skill invocation.
+Temporary installations, fixtures, and exports are cleaned up on exit. Permission
+and device checks retain their documented platform skips. No environment variables
+or Go binary are needed for this command. CI runs it as a separate step.
+
 Requires Python 3.11+. These checks do not switch the installed skill or replace
 the Go implementation.
 

@@ -65,3 +65,6 @@ jobs:
           SIFT_CONTRACT_COMMAND: '["python3", "${{ github.workspace }}/skills/sift/scripts/search.py"]'
           PYTHONPATH: '${{ github.workspace }}/skills/sift/scripts/_vendor'
         run: python3 -m unittest discover -s tests/migration -v
+
+      - name: Verify portable skill installation
+        run: python3 tests/migration/check_portable_skill.py

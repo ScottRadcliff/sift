@@ -15,7 +15,8 @@ import unittest
 from unittest import mock
 
 
-HELPER = Path(__file__).resolve().parents[2] / "skills/sift/scripts/search.py"
+HELPER = Path(os.environ.get(
+    "SIFT_PYTHON_HELPER", Path(__file__).resolve().parents[2] / "skills/sift/scripts/search.py")).resolve()
 
 
 class PythonHelper(unittest.TestCase):

@@ -111,6 +111,16 @@ search-behavior reference. UI metadata now describes the file-search skill rathe
 than a separate CLI. Normal skill discovery remains enabled. Go code and its
 existing build/release tooling remain in place for the later cleanup step.
 
+Step four is implemented by `tests/migration/check_portable_skill.py`, also run
+in CI. It copies the skill and a separate test harness to temporary directories,
+then runs the contract and helper integration suites from an unrelated project
+with site packages disabled and an empty executable PATH. Runtime code and test
+imports use only those copies, not the checkout. No dependency download or Go
+binary is used. Paths contain spaces; temporary fixtures and exports are removed
+on exit. The representative searches, regex timeout, and CSV export scenarios
+are included in the helper integration checks. The next step is removal of the
+retired Go product and tooling.
+
 1. **Capture the behavior contract.** Convert relevant Go tests and samples into Python behavioral fixtures. Separate preserved behavior from deliberate interface changes. Resolve ignore handling and the regex cancellation prototype. Establish the minimum interpreter and any bundled license requirements.
 2. **Implement the private helper.** Add literal search, traversal, ignores, binary/error reporting, structured results, CSV, and time budgets. Add regex with the validated cancellation design. Keep Go intact while verifying the replacement.
 3. **Switch the skill.** Replace PATH/binary discovery with an absolute skill-relative helper invocation. Update examples, regex translation, timeout units, runtime diagnostics, references, and UI metadata. Preserve normal skill discovery; skill-only packaging does not imply explicit-only invocation.
