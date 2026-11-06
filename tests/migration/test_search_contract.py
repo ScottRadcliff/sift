@@ -1,8 +1,7 @@
-"""Behavior fixtures shared by the Go baseline and future Python helper.
+"""Behavior contract for the bundled Python helper.
 
-SIFT_CONTRACT_COMMAND is a JSON argv array, e.g. ["/tmp/sift-baseline"].
-SIFT_CONTRACT_ENGINE is go (default) or python; only argument syntax differs.
-The command is required so tests never silently exercise a stale checkout binary.
+By default use this interpreter and the skill's helper. SIFT_CONTRACT_COMMAND
+can supply a JSON argv array to verify a copied installation instead.
 """
 
 import csv
@@ -10,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -18,14 +18,10 @@ class SearchContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         raw = os.environ.get("SIFT_CONTRACT_COMMAND")
-        if not raw:
-            raise RuntimeError("Set SIFT_CONTRACT_COMMAND to a freshly built baseline argv array")
-        cls.command = json.loads(raw)
+        cls.command = json.loads(raw) if raw else [
+            sys.executable, str(Path(__file__).resolve().parents[2] / "skills/sift/scripts/search.py")]
         if not isinstance(cls.command, list) or not cls.command or not all(isinstance(v, str) for v in cls.command):
             raise ValueError("SIFT_CONTRACT_COMMAND must be a nonempty JSON string array")
-        cls.engine = os.environ.get("SIFT_CONTRACT_ENGINE", "go")
-        if cls.engine not in ("go", "python"):
-            raise ValueError("SIFT_CONTRACT_ENGINE must be go or python")
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="sift contract ")
@@ -40,12 +36,9 @@ class SearchContract(unittest.TestCase):
 
     def search(self, term="needle", path=".", regex=False, case_sensitive=False,
                no_ignore=False, export=None):
-        args = ["--json", "--no-interactive"] if self.engine == "go" else []
+        args = []
         if regex:
-            if self.engine == "go":
-                term = f"/{term}/"
-            else:
-                args.append("--regex")
+            args.append("--regex")
         if case_sensitive:
             args.append("--case-sensitive")
         if no_ignore:
@@ -138,8 +131,8 @@ class SearchContract(unittest.TestCase):
         self.assertEqual(data["skipped_files"], [])
 
     def test_invalid_regex_has_diagnostic_and_no_json(self):
-        args = ["--json", "--no-interactive"] if self.engine == "go" else ["--regex"]
-        term = "/[/" if self.engine == "go" else "["
+        args = ["--regex"]
+        term = "["
         result = subprocess.run(self.command + args + ["--", term, str(self.root)],
                                 capture_output=True, text=True, timeout=15)
         self.assertEqual(result.returncode, 2)

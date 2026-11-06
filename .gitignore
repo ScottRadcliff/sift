@@ -1,4 +1,4 @@
-# Compiled binaries and local build output
+# Retained legacy build artifacts (not used by the skill)
 /bin/
 /dist/
 *.exe
@@ -21,7 +21,7 @@
 *.pem
 *.key
 
-# Local Go workspace configuration; commit go.mod and go.sum
+# Local files from legacy Go development
 /go.work
 /go.work.sum
 
@@ -45,6 +45,6 @@ Desktop.ini
 /scratch/
 *.log
 
-# Python release-packaging cache
+# Python bytecode cache
 __pycache__/
 *.pyc

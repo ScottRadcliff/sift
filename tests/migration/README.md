@@ -1,79 +1,44 @@
-# Migration checks
+# Python checks
 
-Verify an independent skill installation:
+Requires Python 3.11+. Run the behavior, integration, and migration feasibility
+checks from the repository root:
 
 ```sh
+make test
+make portable
+```
+
+Equivalent commands without Make:
+
+```sh
+PYTHONPATH=skills/sift/scripts/_vendor \
+  python3 -m unittest discover -s tests/migration -v
 python3 tests/migration/check_portable_skill.py
 ```
 
-This copies only `skills/sift/` plus the contract and helper integration test
-harness into a temporary directory. Tests run from an unrelated project with
-spaces in its path, site packages disabled, Python environment overrides removed,
-and an empty executable PATH. All helper calls use the copied installation and
-the interpreter's absolute path. The copied harness loads no checkout code.
-The checks cover the behavior fixtures, regex timeouts, errors, skips, Unicode,
-CSV creation and collisions, worker cleanup, and another copied-skill invocation.
-Temporary installations, fixtures, and exports are cleaned up on exit. Permission
-and device checks retain their documented platform skips. No environment variables
-or Go binary are needed for this command. CI runs it as a separate step.
+No Go binary, Docker, or package installation is required. `PYTHONPATH` lets the
+historical ignore-candidate experiment use the bundled dependency; the actual
+helper always resolves its own bundled copy and needs no environment setup.
+Tests use the current interpreter and helper by default. An optional
+`SIFT_CONTRACT_COMMAND` JSON argv array selects another helper installation;
+`SIFT_PYTHON_HELPER` selects the helper used by integration tests. There is no
+longer a Go engine adapter.
 
-Requires Python 3.11+. These checks do not switch the installed skill or replace
-the Go implementation.
+The behavior fixtures assert ordered matches and skips. Additional checks cover
+exports, permissions, symlinks, binary-prefix detection, validation failures,
+Unicode, incomplete searches, regex cancellation, worker cleanup and crashes,
+CSV finalization failures, and JSON output failures. Tests create fixtures and
+exports in temporary directories, including paths with spaces. Permission checks
+skip when run as root; `/dev/full` skips where unavailable, with a portable
+fault-injection test also covering JSON write errors.
 
-Build the current Go source with `make binary`, then run from the repository root:
+The portability command copies only `skills/sift/` and the contract/integration
+test harness into a temporary directory. Tests run from an unrelated project
+with site packages disabled, Python environment overrides removed, and an empty
+executable PATH. All helper calls and imports use those copies. No checkout
+runtime code, installed Sift command, or dependency download is used. Temporary
+installations, fixtures, and exports are cleaned up afterward.
 
-```sh
-SIFT_CONTRACT_COMMAND='["/absolute/path/to/sift/bin/sift"]' \
-  python3 -m unittest discover -s tests/migration -v
-```
-
-An explicit command is required; the suite does not silently use a potentially
-stale binary. The argument is a JSON array, not shell code. The baseline must be
-a host-native build. The bundled Python helper runs the same preserved-behavior
-checks using:
-
-```sh
-SIFT_CONTRACT_ENGINE=python \
-SIFT_CONTRACT_COMMAND='["python3", "/absolute/path/to/skill/scripts/search.py"]' \
-PYTHONPATH=skills/sift/scripts/_vendor \
-  python3 -m unittest discover -s tests/migration -v
-```
-
-The adapter changes only invocation syntax; it does not relax assertions for the
-Python implementation. JSON fixture cases assert ordered matches and skips.
-Additional checks cover exports, permissions, symlinks, binary-prefix detection,
-validation failures, and incomplete searches. Fixtures are created in temporary
-directories whose names contain spaces. No test writes exports into this checkout.
-
-Run only the standalone regex prototype tests without a Go binary:
-
-```sh
-python3 -m unittest discover -s tests/migration -p test_regex_deadline.py -v
-```
-
-The regex tests exercise a pathological backtracking expression, preservation of
-earlier matches, CSV finalization, startup cancellation, worker cleanup, invalid
-arguments, worker errors, and destination collisions. The single-file prototype
-is intentionally outside the installed skill. It is not a production search
-engine and does not implement ignores, traversal, or binary filtering.
-
-The prototype starts its budget before process creation and finalizes output
-after stopping/reaping the worker. The pathological-pattern test allows one
-second for startup and matching, with a five-second elapsed-time assertion to
-catch ineffective cancellation without treating small scheduling delays as bugs.
-Permission checks skip when run as root. The Linux-only `/dev/full` test skips
-when that device is absent; a portable fault-injection test also checks JSON
-write failures. `test_python_helper.py` covers the actual helper, including its
-worker cleanup, timeout handling, CSV finalization failures, worker crashes, and
-operation from a copied skill folder with site packages disabled.
-
-To run the ignore-library evaluation alone using the bundled source:
-
-```sh
-PYTHONPATH=skills/sift/scripts/_vendor \
-  python3 -m unittest discover -s tests/migration -p test_ignore_candidate.py -v
-```
-
-Without `pathspec` on the test runner's module path, the optional candidate test
-explicitly skips. The helper itself always resolves its bundled copy and needs
-no `PYTHONPATH` setup or dependency installation.
+The earlier regex and ignore prototypes remain as migration experiments outside
+the installable skill. CI runs the full Python suite and the copied-installation
+check on Python 3.11 and 3.13.

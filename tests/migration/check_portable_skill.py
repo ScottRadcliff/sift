@@ -42,7 +42,6 @@ def main():
             PYTHONNOUSERSITE="1",
             PYTHONDONTWRITEBYTECODE="1",
             TMPDIR=str(temporary_files), TEMP=str(temporary_files), TMP=str(temporary_files),
-            SIFT_CONTRACT_ENGINE="python",
             SIFT_CONTRACT_COMMAND=json.dumps([sys.executable, "-S", str(helper)]),
             SIFT_PYTHON_HELPER=str(helper),
         )

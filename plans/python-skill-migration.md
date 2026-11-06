@@ -4,7 +4,7 @@
 
 Sift will be a skill with bundled Python code. The supported user interface is the skill: the agent interprets requests, invokes a helper relative to the installed skill directory, and presents results. Users will not build, install, or manage a separate CLI.
 
-This plan supersedes the Go CLI direction in `implementation-plan.md`. This planning change does not start the implementation or remove existing files.
+This plan supersedes the Go CLI direction in `implementation-plan.md`. Steps one through five are implemented; the remaining step is rewriting the legacy repository documentation.
 
 Keep the existing `skills/sift/` location as the installable unit. The complete folder must work when copied outside this checkout. No runtime code, fixtures, or configuration may depend on repository paths, an installed `sift` command, Go, Docker, or a network connection.
 
@@ -104,12 +104,12 @@ finalization follows cancellation.
 
 The full 32-test migration suite passes on Linux Python 3.11.2 and macOS Python
 3.12.3 (the Linux-only device test skips on macOS). Helper integration checks also
-pass on macOS Python 3.13. CI now checks the behavior contract against the Go
-baseline and runs the Python migration suite. Windows has not been tested.
+pass on macOS Python 3.13. At step two, CI checked the behavior contract against
+the Go baseline and ran the Python migration suite. Windows has not been tested.
 Step three switches `SKILL.md` to the bundled Python helper and adds the detailed
 search-behavior reference. UI metadata now describes the file-search skill rather
-than a separate CLI. Normal skill discovery remains enabled. Go code and its
-existing build/release tooling remain in place for the later cleanup step.
+than a separate CLI. Normal skill discovery remains enabled. At this stage, Go
+code and its build/release tooling were retained for the later cleanup step.
 
 Step four is implemented by `tests/migration/check_portable_skill.py`, also run
 in CI. It copies the skill and a separate test harness to temporary directories,
@@ -120,6 +120,18 @@ binary is used. Paths contain spaces; temporary fixtures and exports are removed
 on exit. The representative searches, regex timeout, and CSV export scenarios
 are included in the helper integration checks. The next step is removal of the
 retired Go product and tooling.
+
+Step five removes the tracked Go source/tests, module files, Docker/Compose
+configuration, binary packaging scripts/tests, and tag-triggered release workflow.
+The Makefile now provides only Python test and portability commands. CI runs the
+Python suite and portability check on Python 3.11 and 3.13 without building Go or
+installing search dependencies. Contract tests default to the bundled Python
+helper; the retired Go argument adapter has been removed. Local `bin/`, `dist/`,
+and `coverage.out` artifacts were inventoried and retained under ignore rules.
+No installed executable, personal skill, Docker volume, external release, or user
+export was modified. Historical prototypes and fixtures remain outside the skill.
+The README now identifies the active skill and flags its legacy CLI sections for
+replacement in step six; development test instructions have already been updated.
 
 1. **Capture the behavior contract.** Convert relevant Go tests and samples into Python behavioral fixtures. Separate preserved behavior from deliberate interface changes. Resolve ignore handling and the regex cancellation prototype. Establish the minimum interpreter and any bundled license requirements.
 2. **Implement the private helper.** Add literal search, traversal, ignores, binary/error reporting, structured results, CSV, and time budgets. Add regex with the validated cancellation design. Keep Go intact while verifying the replacement.

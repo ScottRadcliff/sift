@@ -1,4 +1,4 @@
-name: Go CI
+name: Python CI
 
 on:
   push:
@@ -14,57 +14,28 @@ concurrency:
 
 jobs:
   test:
-    name: Build and test
+    name: Python ${{ matrix.python }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      GOTOOLCHAIN: local
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
     steps:
       - name: Check out source
         uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - name: Set up Go
-        uses: actions/setup-go@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
-          go-version-file: go.mod
-          cache-dependency-path: go.sum
-
-      - name: Check formatting
-        run: |
-          unformatted="$(gofmt -l cmd)"
-          if [ -n "$unformatted" ]; then
-            printf 'Run make fmt to format these files:\n%s\n' "$unformatted"
-            exit 1
-          fi
-
-      - name: Verify dependencies
-        run: go mod verify
-
-      - name: Vet
-        run: go vet ./...
-
-      - name: Test with race detection and coverage
-        run: go test -race -count=1 -timeout=60s -coverprofile=coverage.out ./...
-
-      - name: Test release packaging
-        run: python3 -m unittest discover -s scripts -p 'test_*.py'
-
-      - name: Build CLI
-        run: go build -o bin/sift ./cmd/sift
-
-      - name: Check migration contract against Go baseline
-        env:
-          SIFT_CONTRACT_COMMAND: '["${{ github.workspace }}/bin/sift"]'
-        run: python3 -m unittest discover -s tests/migration -p test_search_contract.py -v
+          python-version: ${{ matrix.python }}
 
       - name: Test bundled Python helper
         env:
-          SIFT_CONTRACT_ENGINE: python
-          SIFT_CONTRACT_COMMAND: '["python3", "${{ github.workspace }}/skills/sift/scripts/search.py"]'
           PYTHONPATH: '${{ github.workspace }}/skills/sift/scripts/_vendor'
-        run: python3 -m unittest discover -s tests/migration -v
+        run: python -m unittest discover -s tests/migration -v
 
       - name: Verify portable skill installation
-        run: python3 tests/migration/check_portable_skill.py
+        run: python tests/migration/check_portable_skill.py

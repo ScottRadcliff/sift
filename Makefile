@@ -1,75 +1,14 @@
 .DEFAULT_GOAL := help
+PYTHON ?= python3
 
-export LOCAL_UID := $(shell id -u)
-export LOCAL_GID := $(shell id -g)
-COMPOSE := docker compose
-RUN := $(COMPOSE) run --rm dev
-HOST_OS ?= $(shell uname -s | tr '[:upper:]' '[:lower:]')
-HOST_ARCH ?= $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')
-ARGS ?= --help
-VERSION ?= dev
-GO_LDFLAGS := -X main.version=$(VERSION)
-DIST_DIR ?= dist/$(VERSION)
-INSTALL_DIR ?= $(HOME)/.local/bin
-
-.PHONY: help build run binary install release fmt vet test up down stop restart logs ps shell
+.PHONY: help test portable
 
 help:
-	@echo "build   Build the Docker development image"
-	@echo "run     Run the CLI in Docker (ARGS defaults to --help)"
-	@echo "binary  Build bin/sift for this host (VERSION=dev, HOST_OS/HOST_ARCH override)"
-	@echo "install Build and install sift (INSTALL_DIR defaults to ~/.local/bin)"
-	@echo "release Build release archives and checksums (VERSION=vX.Y.Z, DIST_DIR override)"
-	@echo "fmt     Format Go source"
-	@echo "vet     Check Go source"
-	@echo "test    Run tests"
-	@echo "up      Start optional workspace container in foreground"
-	@echo "shell   Open shell in running workspace container"
-	@echo "down / stop / restart / logs / ps   Manage workspace container"
-
-build:
-	$(COMPOSE) build
-
-run:
-	$(RUN) go run -ldflags '$(GO_LDFLAGS)' ./cmd/sift $(ARGS)
-
-binary:
-	$(COMPOSE) run --rm -e CGO_ENABLED=0 -e GOOS=$(HOST_OS) -e GOARCH=$(HOST_ARCH) dev go build -ldflags '$(GO_LDFLAGS)' -o bin/sift ./cmd/sift
-
-install: binary
-	mkdir -p "$(INSTALL_DIR)"
-	install -m 0755 bin/sift "$(INSTALL_DIR)/sift"
-	@printf 'Installed %s\nEnsure %s is on your PATH.\n' "$(INSTALL_DIR)/sift" "$(INSTALL_DIR)"
-
-release:
-	$(RUN) python3 scripts/package_release.py --version "$(VERSION)" --output "$(DIST_DIR)"
-
-fmt:
-	$(RUN) go fmt ./...
-
-vet:
-	$(RUN) go vet ./...
+	@echo "test      Run Python behavior and integration tests (Python 3.11+)"
+	@echo "portable  Verify a copied skill installation in isolation"
 
 test:
-	$(RUN) go test ./...
+	PYTHONPATH=skills/sift/scripts/_vendor $(PYTHON) -m unittest discover -s tests/migration -v
 
-up:
-	$(COMPOSE) up
-
-down:
-	$(COMPOSE) down
-
-stop:
-	$(COMPOSE) stop
-
-restart:
-	$(COMPOSE) restart
-
-logs:
-	$(COMPOSE) logs -f
-
-ps:
-	$(COMPOSE) ps
-
-shell:
-	$(COMPOSE) exec dev sh
+portable:
+	$(PYTHON) tests/migration/check_portable_skill.py

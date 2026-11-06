@@ -1,5 +1,7 @@
 # Sift
 
+> Sift now runs as a self-contained [Python skill](skills/sift/SKILL.md), requiring Python 3.11+. Use `make test` and `make portable` for development checks. The Go CLI and Docker/release tooling have been removed; the legacy CLI documentation below is pending replacement in the final migration step.
+
 ![Sift — a metal sifter filtering code fragments into matching results](assets/sift-banner.png)
 
 Sift is a small Go CLI for searching text files, with readable results and a companion skill for agents.
