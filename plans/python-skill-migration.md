@@ -4,7 +4,7 @@
 
 Sift will be a skill with bundled Python code. The supported user interface is the skill: the agent interprets requests, invokes a helper relative to the installed skill directory, and presents results. Users will not build, install, or manage a separate CLI.
 
-This plan supersedes the Go CLI direction in `implementation-plan.md`. Steps one through five are implemented; the remaining step is rewriting the legacy repository documentation.
+All six migration steps are complete. This document retains the decisions and sequence that replaced the former Go CLI; the README and skill instructions describe current use.
 
 Keep the existing `skills/sift/` location as the installable unit. The complete folder must work when copied outside this checkout. No runtime code, fixtures, or configuration may depend on repository paths, an installed `sift` command, Go, Docker, or a network connection.
 
@@ -118,8 +118,8 @@ with site packages disabled and an empty executable PATH. Runtime code and test
 imports use only those copies, not the checkout. No dependency download or Go
 binary is used. Paths contain spaces; temporary fixtures and exports are removed
 on exit. The representative searches, regex timeout, and CSV export scenarios
-are included in the helper integration checks. The next step is removal of the
-retired Go product and tooling.
+are included in the helper integration checks. This established the basis for
+removing the retired Go product and tooling in step five.
 
 Step five removes the tracked Go source/tests, module files, Docker/Compose
 configuration, binary packaging scripts/tests, and tag-triggered release workflow.
@@ -132,6 +132,14 @@ No installed executable, personal skill, Docker volume, external release, or use
 export was modified. Historical prototypes and fixtures remain outside the skill.
 The README now identifies the active skill and flags its legacy CLI sections for
 replacement in step six; development test instructions have already been updated.
+
+Step six replaces the README and sample QA guide with skill installation,
+conversational invocation, Python prerequisites, and current test commands.
+Obsolete Go implementation, development, release, and original product plans are
+removed. The banner remains project artwork rather than an executable asset.
+This transition record and the historical step-one findings are retained. Local
+generated artifacts and external installations remain untouched. Documentation
+examples and relative links are checked against the completed skill.
 
 1. **Capture the behavior contract.** Convert relevant Go tests and samples into Python behavioral fixtures. Separate preserved behavior from deliberate interface changes. Resolve ignore handling and the regex cancellation prototype. Establish the minimum interpreter and any bundled license requirements.
 2. **Implement the private helper.** Add literal search, traversal, ignores, binary/error reporting, structured results, CSV, and time budgets. Add regex with the validated cancellation design. Keep Go intact while verifying the replacement.

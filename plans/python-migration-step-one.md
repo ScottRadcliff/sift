@@ -1,5 +1,8 @@
 # Step one: behavior contract and feasibility
 
+Historical record of the first migration step. The migration is now complete;
+see the [completed transition record](python-skill-migration.md) for the final state.
+
 ## Completed
 
 Added reusable JSON behavior fixtures and a Python unittest adapter for the
